@@ -1,15 +1,17 @@
 # Chakna Store - Project TODO
 
 ## Phase 1: Core Setup & Authentication
-- [ ] Set up Firebase configuration with provided credentials
-- [ ] Implement Firebase authentication (Email/Password)
-- [ ] Create authentication context/provider
-- [ ] Build Splash Screen with app logo
+- [x] Set up Firebase configuration with provided credentials
+- [x] Implement Firebase authentication (Email/Password)
+- [x] Create authentication context/provider
+- [x] Build Splash Screen with app logo
 - [ ] Build Onboarding carousel (3 slides)
-- [ ] Build Login Screen with validation
-- [ ] Build Register Screen with role selection
-- [ ] Implement role-based routing (Customer/Vendor/Admin)
-- [ ] Set up secure token storage (AsyncStorage/SecureStore)
+- [x] Build Login Screen with validation
+- [x] Build Register Screen with role selection
+- [x] Implement role-based routing (Customer/Vendor/Admin)
+- [x] Set up secure token storage (AsyncStorage/SecureStore)
+- [x] Add default admin credentials (Shashank Rajput - xyz@gmail.com)
+- [x] Add demo credentials display on login screen
 
 ## Phase 2: Customer Flow - Core Navigation
 - [ ] Create Customer bottom tab navigation

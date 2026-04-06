@@ -5,6 +5,7 @@
 
 import React, { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { DEFAULT_ADMIN_CREDENTIALS, DEFAULT_TEST_USERS } from './default-credentials';
 
 export type UserRole = 'customer' | 'vendor' | 'admin';
 
@@ -101,6 +102,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   restoreToken: () => Promise<void>;
   clearError: () => void;
+  getTestUsers: () => typeof DEFAULT_TEST_USERS;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -130,14 +132,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       dispatch({ type: 'CLEAR_ERROR' });
 
-      // TODO: Integrate with Firebase Authentication
-      // For now, using mock implementation
+      // Check against default test users (including admin)
+      const testUser = DEFAULT_TEST_USERS.find(
+        user => user.email === email && user.password === password
+      );
+
+      if (!testUser) {
+        throw new Error('Invalid email or password');
+      }
+
       const mockUser: User = {
         id: 'user_' + Date.now(),
-        email,
-        name: email.split('@')[0],
-        phone: '',
-        role: 'customer',
+        email: testUser.email,
+        name: testUser.name,
+        phone: testUser.phone,
+        role: testUser.role,
         createdAt: new Date().toISOString(),
       };
 
@@ -160,6 +169,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = useCallback(async (userData: Omit<User, 'id' | 'createdAt'> & { password: string }) => {
     try {
       dispatch({ type: 'CLEAR_ERROR' });
+
+      // Validate email is not already registered
+      const existingUser = DEFAULT_TEST_USERS.find(u => u.email === userData.email);
+      if (existingUser) {
+        throw new Error('Email already registered');
+      }
 
       // TODO: Integrate with Firebase Authentication
       // For now, using mock implementation
@@ -200,6 +215,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'CLEAR_ERROR' });
   }, []);
 
+  const getTestUsers = useCallback(() => DEFAULT_TEST_USERS, []);
+
   const value: AuthContextType = {
     state,
     signIn,
@@ -207,6 +224,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signOut,
     restoreToken,
     clearError,
+    getTestUsers,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -218,4 +236,11 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
+}
+
+/**
+ * Helper function to get default admin credentials for testing
+ */
+export function getDefaultAdminCredentials() {
+  return DEFAULT_ADMIN_CREDENTIALS;
 }
