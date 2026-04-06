@@ -25,13 +25,62 @@ export interface CartItem {
     addedAt: string;
 }
 
+export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'cooking' | 'out-for-delivery' | 'delivered' | 'cancelled';
+
 export interface Order {
     id: string;
     items: CartItem[];
     total: number;
-    status: 'pending' | 'confirmed' | 'preparing' | 'out-for-delivery' | 'delivered' | 'cancelled';
+    status: OrderStatus;
     deliveryAddress: string;
     paymentId?: string;
     userId: string;
+    vendorId?: string;
     createdAt: string;
 }
+
+export interface Review {
+    id: string;
+    userId: string;
+    productId?: string;
+    orderId?: string;
+    rating: number; // 1-5
+    comment?: string;
+    createdAt: string;
+}
+
+export type TiffinStatus = 'pending' | 'cancelled' | 'delivered' | 'updated' | 'not-received';
+
+export interface TiffinOrder {
+    id: string;
+    userId: string;
+    vendorId: string;
+    date: string; // YYYY-MM-DD
+    menu: string; // JSON or string
+    status: TiffinStatus;
+    pointsUsed: number;
+    notes?: string;
+    createdAt: string;
+}
+
+export type CateringStatus = 'confirmed' | 'cancelled' | 'in-progress' | 'completed';
+
+export type MenuType = 'veg' | 'non-veg' | 'both';
+
+export interface CateringRequest {
+    id: string;
+    userId: string;
+    eventDate: string;
+    guestCount: number;
+    menuType: MenuType | 'alcohol';
+    notes?: string;
+    status: CateringStatus;
+    createdAt: string;
+}
+
+export interface UserLocation {
+    latitude: number;
+    longitude: number;
+    address: string;
+}
+

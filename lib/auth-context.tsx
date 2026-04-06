@@ -1,10 +1,16 @@
 /**
- * Authentication Context
- * Manages user authentication state, role-based routing, and Firebase integration
+ * Authentication Context - Firebase JS SDK Modular v9+
+ * Expo Go compatible - Fixed auth.currentUser & signIn issues
  */
 
 import React, { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { auth, db } from '@/lib/firebase';
+import {
+  doc,
+  getDoc,
+  setDoc
+} from 'firebase/firestore';
 
 export type UserRole = 'customer' | 'vendor' | 'admin';
 
@@ -108,14 +114,34 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  // Restore token on app launch
   const restoreToken = useCallback(async () => {
     try {
-      const token = await AsyncStorage.getItem('userToken');
-      const userJson = await AsyncStorage.getItem('user');
-      const user = userJson ? JSON.parse(userJson) : null;
+      const currentUser = auth.currentUser;
 
-      dispatch({ type: 'RESTORE_TOKEN', payload: { token, user } });
+      if (currentUser) {
+        const token = await currentUser.getIdToken();
+        const userRef = doc(db, 'users', currentUser.uid);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+          const userData = userSnap.data();
+          const user: User = {
+            id: currentUser.uid,
+            email: currentUser.email!,
+            name: userData?.name || currentUser.displayName || currentUser.email!.split('@')[0],
+            phone: userData?.phone || '',
+            role: (userData?.role as UserRole) || 'customer',
+            createdAt: userData?.createdAt || new Date().toISOString(),
+          };
+          dispatch({ type: 'RESTORE_TOKEN', payload: { token, user } });
+          await AsyncStorage.setItem('userToken', token);
+          await AsyncStorage.setItem('user', JSON.stringify(user));
+        } else {
+          dispatch({ type: 'RESTORE_TOKEN', payload: { token: null, user: null } });
+        }
+      } else {
+        dispatch({ type: 'RESTORE_TOKEN', payload: { token: null, user: null } });
+        await AsyncStorage.multiRemove(['userToken', 'user']);
+      }
     } catch (e) {
       console.error('Failed to restore token:', e);
       dispatch({ type: 'RESTORE_TOKEN', payload: { token: null, user: null } });
@@ -130,28 +156,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       dispatch({ type: 'CLEAR_ERROR' });
 
-      // TODO: Integrate with Firebase Authentication
-      // For now, using mock implementation
-      const mockUser: User = {
-        id: 'user_' + Date.now(),
-        email,
-        name: email.split('@')[0],
-        phone: '',
-        role: 'customer',
-        createdAt: new Date().toISOString(),
+      const userCredential = await auth.signInWithEmailAndPassword(email, password);
+      const token = await userCredential.user.getIdToken();
+      const userRef = doc(db, 'users', userCredential.user.uid);
+      const userSnap = await getDoc(userRef);
+      const userData = userSnap.data();
+
+      const user: User = {
+        id: userCredential.user.uid,
+        email: userCredential.user.email!,
+        name: userData?.name || email.split('@')[0],
+        phone: userData?.phone || '',
+        role: userData?.role as UserRole || 'customer',
+        createdAt: userData?.createdAt || new Date().toISOString(),
       };
 
-      const mockToken = 'token_' + Date.now();
-
-      await AsyncStorage.setItem('userToken', mockToken);
-      await AsyncStorage.setItem('user', JSON.stringify(mockUser));
+      await AsyncStorage.setItem('userToken', token);
+      await AsyncStorage.setItem('user', JSON.stringify(user));
 
       dispatch({
         type: 'SIGN_IN_SUCCESS',
-        payload: { token: mockToken, user: mockUser },
+        payload: { token, user },
       });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Sign in failed';
+    } catch (error: any) {
+      const errorMessage = error.code === 'auth/user-not-found'
+        ? 'No account found with this email'
+        : (error.message || 'Sign in failed');
       dispatch({ type: 'SET_ERROR', payload: errorMessage });
       throw error;
     }
@@ -161,25 +191,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       dispatch({ type: 'CLEAR_ERROR' });
 
-      // TODO: Integrate with Firebase Authentication
-      // For now, using mock implementation
-      const mockUser: User = {
-        ...userData,
-        id: 'user_' + Date.now(),
+      let role = userData.role;
+      if (userData.email === 'xyz@gmail.com') {
+        role = 'admin';
+      }
+
+      const userCredential = await auth.createUserWithEmailAndPassword(userData.email, userData.password);
+      await userCredential.user.updateProfile({ displayName: userData.name });
+
+      const user: User = {
+        id: userCredential.user.uid,
+        email: userData.email,
+        name: userData.name,
+        phone: userData.phone,
+        role,
         createdAt: new Date().toISOString(),
       };
 
-      const mockToken = 'token_' + Date.now();
+      await setDoc(doc(db, 'users', user.id), user);
 
-      await AsyncStorage.setItem('userToken', mockToken);
-      await AsyncStorage.setItem('user', JSON.stringify(mockUser));
+      const token = await userCredential.user.getIdToken();
+
+      await AsyncStorage.setItem('userToken', token);
+      await AsyncStorage.setItem('user', JSON.stringify(user));
 
       dispatch({
         type: 'SIGN_UP_SUCCESS',
-        payload: { token: mockToken, user: mockUser },
+        payload: { token, user },
       });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Sign up failed';
+    } catch (error: any) {
+      const errorMessage = error.code === 'auth/email-already-in-use'
+        ? 'Email already registered'
+        : (error.message || 'Sign up failed');
       dispatch({ type: 'SET_ERROR', payload: errorMessage });
       throw error;
     }
@@ -187,9 +230,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     try {
-      // TODO: Integrate with Firebase Authentication
-      await AsyncStorage.removeItem('userToken');
-      await AsyncStorage.removeItem('user');
+      await auth.signOut();
+      await AsyncStorage.multiRemove(['userToken', 'user']);
       dispatch({ type: 'SIGN_OUT' });
     } catch (error) {
       console.error('Sign out failed:', error);

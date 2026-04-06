@@ -6,30 +6,30 @@ import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { ScreenContainer } from '@/components/screen-container';
 import { Product } from '@/shared/types';
+import { useCart } from '@/lib/cart-context';
 
-interface MockProductDetail extends Product {
-    rating: number;
-    reviews: number;
-    ingredients: string[];
-}
 
-const mockProductDetail: MockProductDetail = {
-    id: '1',
-    name: 'Masala Peanuts',
-    description: 'Spicy roasted peanuts with traditional Indian masala flavoring. Perfect snack for movie nights or evening munchies.',
-    price: 49,
-    imageUrl: '',
-    category: 'snacks',
-    available: true,
-    vendorId: 'vendor1',
-    createdAt: new Date().toISOString(),
-    rating: 4.8,
-    reviews: 124,
-    ingredients: ['Peanuts', 'Spices', 'Salt', 'Oil'],
-};
+// TODO: trpc.products.getById(id)
+const mockProducts: Product[] = [
+    {
+        id: '1',
+        name: 'Masala Peanuts',
+        description: 'Spicy roasted peanuts with traditional Indian masala flavoring. Perfect snack for movie nights or evening munchies.',
+        price: 49,
+        imageUrl: '',
+        category: 'snacks',
+        available: true,
+        vendorId: 'vendor1',
+        createdAt: new Date().toISOString(),
+    },
+    // ... other products
+];
 
 export default function ProductDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
+    const { addItem } = useCart();
+    const product = mockProducts.find(p => p.id === (id as string)) || mockProducts[0];
+
 
     return (
         <ScreenContainer className="flex-1">
@@ -60,9 +60,13 @@ export default function ProductDetailScreen() {
                         </View>
                     </View>
 
-                    <TouchableOpacity className="bg-primary py-4 rounded-2xl items-center">
+                    <TouchableOpacity
+                        className="bg-primary py-4 rounded-2xl items-center active:opacity-90"
+                        onPress={() => addItem(product, 1)}
+                    >
                         <Text className="text-2xl font-bold text-background">Add to Cart</Text>
                     </TouchableOpacity>
+
 
                     <TouchableOpacity
                         className="py-4 items-center border border-border rounded-2xl"

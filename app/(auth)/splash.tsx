@@ -3,7 +3,7 @@
  * Initial loading screen with app logo and branding
  */
 
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { View, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/lib/auth-context';
@@ -16,17 +16,12 @@ export default function SplashScreen() {
   useEffect(() => {
     // Simulate loading and then navigate to onboarding or login
     const timer = setTimeout(() => {
-      if (state.userToken) {
-        // User is already logged in, navigate to home
-        router.replace('/(tabs)');
-      } else {
-        // Navigate to login
-        router.replace('./login');
-      }
-    }, 2000);
+      router.replace('/(auth)/login');
+    }, 2500);
 
     return () => clearTimeout(timer);
-  }, [router, state.userToken]);
+  }, [router]);
+
 
   return (
     <ScreenContainer className="flex-1 items-center justify-center bg-background">

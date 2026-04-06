@@ -7,6 +7,8 @@ import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/screen-container';
 import { useAuth } from '@/lib/auth-context';
+import { useCart } from '@/lib/cart-context';
+
 
 interface ServiceCard {
   id: string;
@@ -43,16 +45,24 @@ const services: ServiceCard[] = [
 export default function CustomerHomeScreen() {
   const router = useRouter();
   const { state } = useAuth();
+  const { state: cartState } = useCart();
+  const cartItemCount = cartState.items.reduce((sum, item) => sum + item.quantity, 0);
+
 
   const handleServicePress = (serviceId: string) => {
-    if (serviceId === 'chakna') {
-      router.push('/(customer)/chakna');
-    } else if (serviceId === 'catering') {
-      // TODO: Navigate to catering
-    } else if (serviceId === 'tiffin') {
-      // TODO: Navigate to tiffin
+    switch (serviceId) {
+      case 'chakna':
+        router.push('/(customer)/chakna');
+        break;
+      case 'catering':
+        router.push('/(customer)/catering');
+        break;
+      case 'tiffin':
+        router.push('/(customer)/tiffin');
+        break;
     }
   };
+
 
   return (
     <ScreenContainer className="flex-1 bg-background">
@@ -121,12 +131,25 @@ export default function CustomerHomeScreen() {
                 <Text className="text-2xl mb-1">⭐</Text>
                 <Text className="text-xs font-semibold text-foreground text-center">Favorites</Text>
               </TouchableOpacity>
-              <TouchableOpacity className="flex-1 bg-surface rounded-lg py-3 px-4 items-center border border-border">
-                <Text className="text-2xl mb-1">🎟️</Text>
-                <Text className="text-xs font-semibold text-foreground text-center">Coupons</Text>
+              <TouchableOpacity
+                className={`flex-1 rounded-lg py-3 px-4 items-center border border-border ${cartItemCount > 0 ? 'bg-primary border-primary' : 'bg-surface'
+                  }`}
+                onPress={() => router.push('/(customer)/cart')}
+              >
+                <Text className="text-2xl mb-1">🛒</Text>
+                {cartItemCount > 0 && (
+                  <View className="absolute -top-2 -right-2 bg-red-500 rounded-full w-6 h-6 items-center justify-center">
+                    <Text className="text-xs text-white font-bold">{cartItemCount}</Text>
+                  </View>
+                )}
+                <Text className={`text-xs font-semibold text-center ${cartItemCount > 0 ? 'text-background' : 'text-foreground'
+                  }`}>
+                  Cart ({cartItemCount})
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
+
 
           {/* Promotional Banner */}
           <View className="bg-gradient-to-r from-primary to-primary/80 rounded-2xl p-4 overflow-hidden">

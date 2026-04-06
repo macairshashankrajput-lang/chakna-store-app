@@ -10,11 +10,36 @@ import { HapticTab } from '@/components/haptic-tab';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Platform } from 'react-native';
 
+import { useAuth } from '@/lib/auth-context';
+import { useEffect } from 'react';
+import { useRouter } from 'expo-router';
+import { Text, View } from 'react-native';
+
 export default function AdminLayout() {
+  const { state } = useAuth();
+  const router = useRouter();
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const bottomPadding = Platform.OS === 'web' ? 12 : Math.max(insets.bottom, 8);
   const tabBarHeight = 56 + bottomPadding;
+
+  useEffect(() => {
+    if (state.isLoading) return;
+
+    if (!state.user || state.user?.role !== 'admin') {
+      router.replace('/(auth)/login');
+      return;
+    }
+  }, [state.isLoading, state.user, router]);
+
+  if (state.isLoading || !state.user || state.user.role !== 'admin') {
+    return (
+      <View className="flex-1 items-center justify-center bg-background">
+        <Text className="text-foreground">Loading...</Text>
+      </View>
+    );
+  }
+
 
   return (
     <Tabs
