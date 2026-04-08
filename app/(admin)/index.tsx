@@ -4,6 +4,7 @@
  */
 
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/screen-container';
 import { useAuth } from '@/lib/auth-context';
 
@@ -21,6 +22,7 @@ const kpiCards: KPICard[] = [
 ];
 
 export default function AdminDashboardScreen() {
+  const router = useRouter();
   const { state } = useAuth();
 
   return (
@@ -55,12 +57,12 @@ export default function AdminDashboardScreen() {
           <View className="mb-6">
             <Text className="text-lg font-bold text-foreground mb-3">Management</Text>
             <View className="gap-2">
-              <ManagementButton icon="🍽️" label="Menu Management" />
-              <ManagementButton icon="⭐" label="Reviews Management" />
-              <ManagementButton icon="📊" label="Customer Data Export" />
-              <ManagementButton icon="🔔" label="Notifications" />
-              <ManagementButton icon="⏰" label="Reminder System" />
-              <ManagementButton icon="🍽️" label="Catering Requests" />
+              <ManagementButton icon="🍽️" label="Menu Management" onPress={() => router.push('./menu')} />
+              <ManagementButton icon="⭐" label="Reviews Management" onPress={() => router.push('./reviews')} />
+              <ManagementButton icon="📊" label="Customer Data Export" onPress={() => router.push('./export')} />
+              <ManagementButton icon="🔔" label="Notifications" onPress={() => router.push('./notifications')} />
+              <ManagementButton icon="⏰" label="Reminder System" onPress={() => router.push('./reminders')} />
+              <ManagementButton icon="🍽️" label="Catering Requests" onPress={() => router.push('./catering')} />
             </View>
           </View>
         </View>
@@ -69,14 +71,20 @@ export default function AdminDashboardScreen() {
   );
 }
 
+
+
 interface ManagementButtonProps {
   icon: string;
   label: string;
+  onPress?: () => void;
 }
 
-function ManagementButton({ icon, label }: ManagementButtonProps) {
+function ManagementButton({ icon, label, onPress }: ManagementButtonProps) {
   return (
-    <TouchableOpacity className="bg-surface rounded-lg px-4 py-3 flex-row items-center gap-3 border border-border active:opacity-70">
+    <TouchableOpacity
+      className="bg-surface rounded-lg px-4 py-3 flex-row items-center gap-3 border border-border active:opacity-70"
+      onPress={onPress}
+    >
       <Text className="text-2xl">{icon}</Text>
       <Text className="text-foreground font-semibold flex-1">{label}</Text>
       <Text className="text-muted">→</Text>

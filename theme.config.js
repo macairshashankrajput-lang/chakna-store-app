@@ -1,14 +1,34 @@
 /** @type {const} */
 const themeColors = {
-  primary: { light: '#0a7ea4', dark: '#0a7ea4' },
-  background: { light: '#ffffff', dark: '#151718' },
-  surface: { light: '#f5f5f5', dark: '#1e2022' },
-  foreground: { light: '#11181C', dark: '#ECEDEE' },
-  muted: { light: '#687076', dark: '#9BA1A6' },
-  border: { light: '#E5E7EB', dark: '#334155' },
-  success: { light: '#22C55E', dark: '#4ADE80' },
-  warning: { light: '#F59E0B', dark: '#FBBF24' },
-  error: { light: '#EF4444', dark: '#F87171' },
+  // Primary orange - playful and energetic
+  primary: { light: '#FF6B35', dark: '#FF6B35' },
+  
+  // Background - clean white
+  background: { light: '#FFFFFF', dark: '#FFFFFF' },
+  
+  // Surface - light off-white for cards
+  surface: { light: '#F8F8F8', dark: '#F8F8F8' },
+  
+  // Foreground - dark text
+  foreground: { light: '#1A1A1A', dark: '#1A1A1A' },
+  
+  // Muted - gray for secondary text
+  muted: { light: '#7A7A7A', dark: '#7A7A7A' },
+  
+  // Border - light gray
+  border: { light: '#E8E8E8', dark: '#E8E8E8' },
+  
+  // Success - green
+  success: { light: '#4CAF50', dark: '#4CAF50' },
+  
+  // Warning - amber
+  warning: { light: '#FFA500', dark: '#FFA500' },
+  
+  // Error - red
+  error: { light: '#E74C3C', dark: '#E74C3C' },
+  
+  // Secondary orange - lighter shade for accents
+  secondary: { light: '#FFB366', dark: '#FFB366' },
 };
 
 module.exports = { themeColors };

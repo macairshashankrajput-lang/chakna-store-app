@@ -14,26 +14,21 @@ export default function SplashScreen() {
   const { state } = useAuth();
 
   useEffect(() => {
-    // Simulate loading and then navigate to onboarding or login
+    // Simulate loading and then navigate to login
     const timer = setTimeout(() => {
-      if (state.userToken) {
-        // User is already logged in, navigate to home
-        router.replace('/(tabs)');
-      } else {
-        // Navigate to login
-        router.replace('./login');
-      }
+      // Always navigate to login - auth context will handle routing based on token
+      router.replace('./login');
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [router, state.userToken]);
+  }, [router]);
 
   return (
     <ScreenContainer className="flex-1 items-center justify-center bg-background">
       <View className="items-center gap-4">
         {/* App Logo */}
-        <View className="w-24 h-24 rounded-2xl bg-primary items-center justify-center shadow-lg">
-          <Text className="text-5xl">🍱</Text>
+        <View className="w-24 h-24 rounded-3xl bg-primary items-center justify-center shadow-lg">
+          <Text className="text-6xl">🍱</Text>
         </View>
 
         {/* App Name */}

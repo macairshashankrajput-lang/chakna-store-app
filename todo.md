@@ -148,3 +148,48 @@
 - [ ] Create user documentation
 - [ ] Prepare deployment checklist
 - [ ] Final QA and sign-off
+
+
+## CRITICAL FIXES REQUIRED
+
+### Theme & Design
+- [ ] Update color scheme to playful white/orange combo
+- [ ] Fix theme.config.js with new colors
+- [ ] Update all screens with new color scheme
+- [ ] Improve overall UI/UX design
+
+### Authentication Flow
+- [ ] Fix login/signup routing
+- [ ] Implement real Firebase authentication
+- [ ] Fix Firebase connectivity issues
+- [ ] Test complete auth flow end-to-end
+
+### Customer Interface
+- [ ] Fix bottom navigation bugs
+- [ ] Fix UI alignment issues
+- [ ] Complete customer service screens
+- [ ] Implement Chakna Store browsing
+- [ ] Implement Catering service
+- [ ] Implement Tiffin service
+- [ ] Fix cart functionality
+
+### Admin Interface
+- [ ] Make all admin buttons functional
+- [ ] Implement menu management
+- [ ] Implement vendor management
+- [ ] Implement reviews management
+- [ ] Implement customer data export
+- [ ] Fix admin dashboard features
+
+### Vendor Interface
+- [ ] Implement vendor management
+- [ ] Make vendor buttons functional
+- [ ] Implement order management
+- [ ] Implement tiffin management
+- [ ] Fix vendor dashboard
+
+### Menu Integration
+- [ ] Fetch real menu from The Chakna Co
+- [ ] Parse and integrate menu data
+- [ ] Display menu items in app
+- [ ] Implement menu filtering/search

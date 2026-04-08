@@ -45,9 +45,17 @@ export default function CustomerHomeScreen() {
   const { state } = useAuth();
 
   const handleServicePress = (serviceId: string) => {
-    // TODO: Navigate to service-specific screens
-    // For now, just log the service ID
-    console.log('Service selected:', serviceId);
+    switch (serviceId) {
+      case 'chakna':
+        router.push('./services/chakna-store');
+        break;
+      case 'catering':
+        router.push('./services/catering');
+        break;
+      case 'tiffin':
+        router.push('./services/tiffin');
+        break;
+    }
   };
 
   return (
@@ -125,7 +133,7 @@ export default function CustomerHomeScreen() {
           </View>
 
           {/* Promotional Banner */}
-          <View className="bg-gradient-to-r from-primary to-primary/80 rounded-2xl p-4 overflow-hidden">
+          <View className="bg-primary rounded-2xl p-4 overflow-hidden mb-6">
             <View className="flex-row items-center justify-between">
               <View className="flex-1">
                 <Text className="text-white font-bold text-lg mb-1">Special Offer</Text>
