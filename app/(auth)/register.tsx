@@ -1,6 +1,7 @@
 /**
  * Register Screen
- * User account creation with role selection
+ * Customer account creation only
+ * Vendor and Admin accounts are managed by administrators
  */
 
 import { useState } from 'react';
@@ -8,7 +9,6 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert } from 'reac
 import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/screen-container';
 import { useAuth } from '@/lib/auth-context';
-import type { UserRole } from '@/lib/auth-context';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -23,7 +23,6 @@ export default function RegisterScreen() {
     referralCode: '',
   });
 
-  const [selectedRole, setSelectedRole] = useState<UserRole>('customer');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleRegister = async () => {
@@ -49,7 +48,7 @@ export default function RegisterScreen() {
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
-        role: selectedRole,
+        role: 'customer',
         referralCode: formData.referralCode || undefined,
         password: formData.password,
       });
@@ -117,31 +116,11 @@ export default function RegisterScreen() {
             />
           </View>
 
-          {/* Role Selection */}
-          <View className="mb-4">
-            <Text className="text-sm font-semibold text-foreground mb-3">I am a</Text>
-            <View className="flex-row gap-3">
-              {(['customer', 'vendor', 'admin'] as const).map(role => (
-                <TouchableOpacity
-                  key={role}
-                  className={`flex-1 rounded-lg py-3 px-4 border-2 items-center ${
-                    selectedRole === role
-                      ? 'bg-primary border-primary'
-                      : 'bg-surface border-border'
-                  }`}
-                  onPress={() => setSelectedRole(role)}
-                  disabled={isLoading}
-                >
-                  <Text
-                    className={`font-semibold capitalize ${
-                      selectedRole === role ? 'text-background' : 'text-foreground'
-                    }`}
-                  >
-                    {role}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+          {/* Info Message */}
+          <View className="bg-primary/10 border border-primary rounded-lg px-4 py-3 mb-6">
+            <Text className="text-sm text-foreground leading-relaxed">
+              You are creating a customer account. Vendor and admin accounts are managed separately by administrators.
+            </Text>
           </View>
 
           {/* Password */}

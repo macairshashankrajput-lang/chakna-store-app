@@ -5,8 +5,24 @@
 
 import React, { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { CartItem, Product } from '@/shared/types';
-import { useAuth } from './auth-context';
+
+// Local type definitions
+export interface Product {
+    id: string;
+    name: string;
+    description: string;
+    price: number;
+    category: string;
+    available: boolean;
+    vendorId: string;
+    createdAt: string;
+}
+
+export interface CartItem {
+    product: Product;
+    quantity: number;
+    addedAt: string;
+}
 
 interface CartState {
     items: CartItem[];
@@ -44,7 +60,7 @@ function cartReducer(state: CartState, action: CartAction): CartState {
             };
 
         case 'ADD_ITEM': {
-            const existingIndex = state.items.findIndex(item => item.productId === action.payload.product.id);
+            const existingIndex = state.items.findIndex(item => item.product.id === action.payload.product.id);
             let newItems: CartItem[];
             if (existingIndex >= 0) {
                 newItems = state.items.map((item, index) =>
@@ -56,9 +72,8 @@ function cartReducer(state: CartState, action: CartAction): CartState {
                 newItems = [
                     ...state.items,
                     {
-                        productId: action.payload.product.id,
+                        product: action.payload.product,
                         quantity: action.payload.quantity,
-                        price: action.payload.product.price,
                         addedAt: new Date().toISOString(),
                     },
                 ];
@@ -72,7 +87,7 @@ function cartReducer(state: CartState, action: CartAction): CartState {
 
         case 'UPDATE_QUANTITY': {
             const newItems = state.items.map(item =>
-                item.productId === action.payload.productId
+                item.product.id === action.payload.productId
                     ? { ...item, quantity: action.payload.quantity }
                     : item
             ).filter(item => item.quantity > 0);
@@ -84,7 +99,7 @@ function cartReducer(state: CartState, action: CartAction): CartState {
         }
 
         case 'REMOVE_ITEM': {
-            const newItems = state.items.filter(item => item.productId !== action.payload.productId);
+            const newItems = state.items.filter(item => item.product.id !== action.payload.productId);
             return {
                 ...state,
                 items: newItems,
@@ -101,7 +116,7 @@ function cartReducer(state: CartState, action: CartAction): CartState {
 }
 
 function calculateTotals(items: CartItem[]): CartState['totals'] {
-    const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const subtotal = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
     const tax = Math.round(subtotal * TAX_RATE * 100) / 100;
     const total = subtotal + tax + DELIVERY_FEE;
     return {
