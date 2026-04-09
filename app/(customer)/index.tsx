@@ -117,15 +117,15 @@ export default function CustomerHomeScreen() {
           <View className="mb-6">
             <Text className="text-lg font-bold text-foreground mb-3">Quick Actions</Text>
             <View className="flex-row gap-3">
-              <TouchableOpacity className="flex-1 bg-surface rounded-lg py-3 px-4 items-center border border-border">
+              <TouchableOpacity className="flex-1 bg-surface rounded-lg py-3 px-4 items-center border border-border active:opacity-70" onPress={() => router.push('./orders')}>
                 <Text className="text-2xl mb-1">🔍</Text>
                 <Text className="text-xs font-semibold text-foreground text-center">Search</Text>
               </TouchableOpacity>
-              <TouchableOpacity className="flex-1 bg-surface rounded-lg py-3 px-4 items-center border border-border">
+              <TouchableOpacity className="flex-1 bg-surface rounded-lg py-3 px-4 items-center border border-border active:opacity-70" onPress={() => router.push('./favorites')}>
                 <Text className="text-2xl mb-1">⭐</Text>
                 <Text className="text-xs font-semibold text-foreground text-center">Favorites</Text>
               </TouchableOpacity>
-              <TouchableOpacity className="flex-1 bg-surface rounded-lg py-3 px-4 items-center border border-border">
+              <TouchableOpacity className="flex-1 bg-surface rounded-lg py-3 px-4 items-center border border-border active:opacity-70" onPress={() => router.push('./profile')}>
                 <Text className="text-2xl mb-1">🎟️</Text>
                 <Text className="text-xs font-semibold text-foreground text-center">Coupons</Text>
               </TouchableOpacity>

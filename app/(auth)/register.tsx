@@ -26,19 +26,24 @@ export default function RegisterScreen() {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleRegister = async () => {
-    // Validation
-    if (!formData.name || !formData.email || !formData.phone || !formData.password) {
-      Alert.alert('Error', 'Please fill in all required fields');
+    if (!formData.name.trim()) {
+      Alert.alert('Error', 'Please enter your name');
       return;
     }
-
-    if (formData.password !== formData.confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+    if (!formData.email.includes('@')) {
+      Alert.alert('Error', 'Please enter a valid email');
       return;
     }
-
+    if (!formData.phone || formData.phone.length < 10) {
+      Alert.alert('Error', 'Please enter a valid phone number');
+      return;
+    }
     if (formData.password.length < 6) {
       Alert.alert('Error', 'Password must be at least 6 characters');
+      return;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
       return;
     }
 

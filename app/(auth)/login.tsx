@@ -22,30 +22,35 @@ export default function LoginScreen() {
   const testUsers = getTestUsers();
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+    if (!email.trim()) {
+      Alert.alert('Error', 'Please enter your email');
+      return;
+    }
+    if (!password) {
+      Alert.alert('Error', 'Please enter your password');
+      return;
+    }
+    if (!email.includes('@')) {
+      Alert.alert('Error', 'Please enter a valid email');
       return;
     }
 
     setIsLoading(true);
     try {
-      await signIn(email, password);
-      // Navigation will happen automatically via auth context
+      await signIn(email.toLowerCase().trim(), password);
     } catch (error) {
-      Alert.alert('Login Failed', state.error || 'Please try again');
+      Alert.alert('Login Failed', state.error || 'Invalid credentials. Try demo credentials below.');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleQuickLogin = async (testUser: typeof testUsers[0]) => {
-    setEmail(testUser.email);
-    setPassword(testUser.password);
     setIsLoading(true);
     try {
       await signIn(testUser.email, testUser.password);
     } catch (error) {
-      Alert.alert('Login Failed', state.error || 'Please try again');
+      Alert.alert('Login Failed', state.error || 'Demo login failed');
     } finally {
       setIsLoading(false);
     }
@@ -57,7 +62,8 @@ export default function LoginScreen() {
         <View className="flex-1 justify-center px-6 py-8">
           {/* Header */}
           <View className="mb-8">
-            <Text className="text-4xl font-bold text-foreground mb-2">Welcome Back</Text>
+            <Text className="text-4xl font-bold text-primary mb-2">Chakna Store</Text>
+            <Text className="text-lg text-foreground mb-1">Welcome Back</Text>
             <Text className="text-base text-muted">Sign in to your account</Text>
           </View>
 
