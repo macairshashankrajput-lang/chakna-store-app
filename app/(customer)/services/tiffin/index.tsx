@@ -1,6 +1,6 @@
 /**
  * Tiffin Services Screen
- * Daily meal delivery subscription
+ * Daily meal delivery subscription with menu selection
  */
 
 import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
@@ -14,63 +14,52 @@ interface TiffinPlan {
   meals: string;
   price: number;
   description: string;
-  benefits: string[];
+}
+
+interface MenuItem {
+  id: string;
+  name: string;
+  icon: string;
 }
 
 const tiffinPlans: TiffinPlan[] = [
-  {
-    id: '1',
-    name: 'Breakfast Only',
-    meals: '1 meal/day',
-    price: 150,
-    description: 'Fresh breakfast delivered daily',
-    benefits: ['Breakfast included', 'Flexible pause', 'Quality assured'],
-  },
-  {
-    id: '2',
-    name: 'Lunch Only',
-    meals: '1 meal/day',
-    price: 200,
-    description: 'Nutritious lunch delivered daily',
-    benefits: ['Lunch included', 'Customizable menu', 'Home delivery'],
-  },
-  {
-    id: '3',
-    name: 'Breakfast + Lunch',
-    meals: '2 meals/day',
-    price: 320,
-    description: 'Complete meal solution',
-    benefits: ['Both meals included', 'Best value', 'Weekly menu'],
-  },
-  {
-    id: '4',
-    name: 'Premium Combo',
-    meals: '3 meals/day',
-    price: 450,
-    description: 'All meals included',
-    benefits: ['All 3 meals', 'Premium quality', 'Special diets'],
-  },
+  { id: '1', name: 'Breakfast Only', meals: '1 meal/day', price: 150, description: 'Fresh breakfast daily' },
+  { id: '2', name: 'Lunch Only', meals: '1 meal/day', price: 200, description: 'Nutritious lunch daily' },
+  { id: '3', name: 'Breakfast + Lunch', meals: '2 meals/day', price: 320, description: 'Complete meal solution' },
+  { id: '4', name: 'Premium Combo', meals: '3 meals/day', price: 450, description: 'All meals included' },
+];
+
+const menuItems: MenuItem[] = [
+  { id: '1', name: 'Roti & Sabzi', icon: '🍛' },
+  { id: '2', name: 'Rice & Dal', icon: '🍚' },
+  { id: '3', name: 'Paneer Curry', icon: '🧀' },
+  { id: '4', name: 'Chicken Curry', icon: '🍗' },
 ];
 
 export default function TiffinScreen() {
   const router = useRouter();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [selectedMenuItems, setSelectedMenuItems] = useState<string[]>([]);
 
-  const handleSelectPlan = (planId: string) => {
-    setSelectedPlan(planId);
-    Alert.alert(
-      'Subscription',
-      'You selected a tiffin plan. Proceed to checkout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Proceed',
-          onPress: () => {
-            router.push('./checkout');
-          },
-        },
-      ]
+  const handleToggleMenu = (itemId: string) => {
+    setSelectedMenuItems(prev =>
+      prev.includes(itemId) ? prev.filter(id => id !== itemId) : [...prev, itemId]
     );
+  };
+
+  const handleSubscribe = () => {
+    if (!selectedPlan) {
+      Alert.alert('Error', 'Please select a plan');
+      return;
+    }
+    if (selectedMenuItems.length === 0) {
+      Alert.alert('Error', 'Please select at least one menu item');
+      return;
+    }
+    Alert.alert('Success', 'Subscription added to cart. Proceed to checkout?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Checkout', onPress: () => router.push('/(customer)/profile') },
+    ]);
   };
 
   return (
@@ -78,108 +67,64 @@ export default function TiffinScreen() {
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
         <View className="px-4 py-6">
           {/* Header */}
-          <View className="mb-6">
-            <Text className="text-3xl font-bold text-foreground mb-2">Tiffin Services</Text>
-            <Text className="text-muted text-sm">Daily meal delivery subscription</Text>
-          </View>
+          <Text className="text-3xl font-bold text-foreground mb-2">Tiffin Services</Text>
+          <Text className="text-muted text-sm mb-6">Daily meal delivery subscription</Text>
 
-          {/* Benefits */}
-          <View className="bg-primary/10 rounded-xl p-4 mb-6 border border-primary">
-            <Text className="font-bold text-foreground mb-2">Why choose our tiffin service?</Text>
-            <View className="gap-1">
-              <Text className="text-sm text-muted">✓ Fresh, home-cooked meals daily</Text>
-              <Text className="text-sm text-muted">✓ Flexible pause and resume anytime</Text>
-              <Text className="text-sm text-muted">✓ Customizable menu options</Text>
-              <Text className="text-sm text-muted">✓ On-time delivery guaranteed</Text>
-            </View>
-          </View>
-
-          {/* Plans */}
-          <View className="gap-4 mb-6">
+          {/* Select Plan */}
+          <Text className="text-lg font-bold text-foreground mb-3">Select Plan</Text>
+          <View className="gap-2 mb-6">
             {tiffinPlans.map(plan => (
-              <View
+              <TouchableOpacity
                 key={plan.id}
-                className={`rounded-xl p-4 border-2 ${
-                  selectedPlan === plan.id
-                    ? 'bg-primary/10 border-primary'
-                    : 'bg-surface border-border'
+                className={`rounded-lg p-4 border-2 ${
+                  selectedPlan === plan.id ? 'bg-primary/10 border-primary' : 'bg-surface border-border'
                 }`}
+                onPress={() => setSelectedPlan(plan.id)}
               >
-                {/* Plan Header */}
-                <View className="flex-row items-start justify-between mb-3">
+                <View className="flex-row items-center justify-between">
                   <View className="flex-1">
-                    <Text className="text-lg font-bold text-foreground mb-1">{plan.name}</Text>
-                    <Text className="text-sm text-muted">{plan.meals}</Text>
+                    <Text className="text-base font-bold text-foreground">{plan.name}</Text>
+                    <Text className="text-sm text-muted">{plan.description}</Text>
                   </View>
-                  <View className="items-end">
-                    <Text className="text-2xl font-bold text-primary">Rs {plan.price}</Text>
-                    <Text className="text-xs text-muted">/month</Text>
-                  </View>
+                  <Text className="text-primary font-bold">₹{plan.price}</Text>
                 </View>
-
-                {/* Description */}
-                <Text className="text-sm text-muted mb-3">{plan.description}</Text>
-
-                {/* Benefits */}
-                <View className="gap-1 mb-4">
-                  {plan.benefits.map((benefit, index) => (
-                    <Text key={index} className="text-xs text-foreground">
-                      • {benefit}
-                    </Text>
-                  ))}
-                </View>
-
-                {/* Select Button */}
-                <TouchableOpacity
-                  className={`rounded-lg py-3 items-center ${
-                    selectedPlan === plan.id
-                      ? 'bg-primary'
-                      : 'bg-surface border border-border'
-                  }`}
-                  onPress={() => handleSelectPlan(plan.id)}
-                >
-                  <Text
-                    className={`font-bold ${
-                      selectedPlan === plan.id ? 'text-background' : 'text-foreground'
-                    }`}
-                  >
-                    {selectedPlan === plan.id ? 'Selected' : 'Select Plan'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
+              </TouchableOpacity>
             ))}
           </View>
 
-          {/* How It Works */}
-          <View className="bg-surface rounded-xl p-4 border border-border">
-            <Text className="font-bold text-foreground mb-3">How It Works</Text>
-            <View className="gap-2">
-              <View className="flex-row gap-3">
-                <View className="w-6 h-6 rounded-full bg-primary items-center justify-center">
-                  <Text className="text-background text-xs font-bold">1</Text>
+          {/* Select Menu */}
+          <Text className="text-lg font-bold text-foreground mb-3">Select Menu Items</Text>
+          <View className="gap-2 mb-6">
+            {menuItems.map(item => (
+              <TouchableOpacity
+                key={item.id}
+                className={`rounded-lg p-4 flex-row items-center gap-3 border-2 ${
+                  selectedMenuItems.includes(item.id)
+                    ? 'bg-primary/10 border-primary'
+                    : 'bg-surface border-border'
+                }`}
+                onPress={() => handleToggleMenu(item.id)}
+              >
+                <Text className="text-2xl">{item.icon}</Text>
+                <Text className="flex-1 text-foreground font-semibold">{item.name}</Text>
+                <View
+                  className={`w-5 h-5 rounded border-2 items-center justify-center ${
+                    selectedMenuItems.includes(item.id) ? 'bg-primary border-primary' : 'border-border'
+                  }`}
+                >
+                  {selectedMenuItems.includes(item.id) && <Text className="text-white text-xs">✓</Text>}
                 </View>
-                <Text className="text-sm text-muted flex-1">Select your preferred tiffin plan</Text>
-              </View>
-              <View className="flex-row gap-3">
-                <View className="w-6 h-6 rounded-full bg-primary items-center justify-center">
-                  <Text className="text-background text-xs font-bold">2</Text>
-                </View>
-                <Text className="text-sm text-muted flex-1">Choose your meal preferences</Text>
-              </View>
-              <View className="flex-row gap-3">
-                <View className="w-6 h-6 rounded-full bg-primary items-center justify-center">
-                  <Text className="text-background text-xs font-bold">3</Text>
-                </View>
-                <Text className="text-sm text-muted flex-1">Meals delivered to your doorstep</Text>
-              </View>
-              <View className="flex-row gap-3">
-                <View className="w-6 h-6 rounded-full bg-primary items-center justify-center">
-                  <Text className="text-background text-xs font-bold">4</Text>
-                </View>
-                <Text className="text-sm text-muted flex-1">Manage subscription anytime</Text>
-              </View>
-            </View>
+              </TouchableOpacity>
+            ))}
           </View>
+
+          {/* Subscribe Button */}
+          <TouchableOpacity
+            className="w-full bg-primary rounded-lg py-4 items-center mb-6"
+            onPress={handleSubscribe}
+          >
+            <Text className="text-white font-bold text-base">Add to Cart</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </ScreenContainer>

@@ -1,6 +1,6 @@
 /**
  * Admin Catering Requests Screen
- * Manage catering service requests
+ * View and manage customer catering service requests
  */
 
 import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
@@ -10,40 +10,54 @@ import { useState } from 'react';
 interface CateringRequest {
   id: string;
   customerName: string;
+  customerPhone: string;
   eventName: string;
   eventDate: string;
   guestCount: number;
   budget: number;
-  status: 'pending' | 'approved' | 'rejected' | 'completed';
-  phone: string;
+  status: 'pending' | 'approved' | 'rejected';
+  submittedDate: string;
 }
 
-const mockRequests: CateringRequest[] = [
+const customerRequests: CateringRequest[] = [
   {
     id: '1',
     customerName: 'Rajesh Kumar',
+    customerPhone: '9876543210',
     eventName: 'Wedding Reception',
     eventDate: '2026-05-15',
     guestCount: 150,
     budget: 75000,
     status: 'pending',
-    phone: '9876543210',
+    submittedDate: '2026-04-08',
   },
   {
     id: '2',
     customerName: 'Priya Singh',
+    customerPhone: '9123456789',
     eventName: 'Birthday Party',
     eventDate: '2026-04-20',
     guestCount: 50,
     budget: 15000,
     status: 'approved',
-    phone: '9123456789',
+    submittedDate: '2026-04-07',
+  },
+  {
+    id: '3',
+    customerName: 'Amit Patel',
+    customerPhone: '9988776655',
+    eventName: 'Corporate Event',
+    eventDate: '2026-05-01',
+    guestCount: 200,
+    budget: 100000,
+    status: 'pending',
+    submittedDate: '2026-04-06',
   },
 ];
 
 export default function AdminCateringScreen() {
-  const [requests, setRequests] = useState(mockRequests);
-  const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'completed'>('all');
+  const [requests, setRequests] = useState(customerRequests);
+  const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
 
   const filteredRequests = requests.filter(req =>
     filterStatus === 'all' ? true : req.status === filterStatus
@@ -56,14 +70,14 @@ export default function AdminCateringScreen() {
         text: 'Approve',
         onPress: () => {
           setRequests(requests.map(r => r.id === id ? { ...r, status: 'approved' } : r));
-          Alert.alert('Success', 'Request approved');
+          Alert.alert('Success', 'Request approved and customer notified');
         },
       },
     ]);
   };
 
   const handleReject = (id: string) => {
-    Alert.alert('Reject Request', 'Are you sure?', [
+    Alert.alert('Reject Request', 'Are you sure? Customer will be notified.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Reject',
@@ -83,18 +97,16 @@ export default function AdminCateringScreen() {
           {/* Header */}
           <View className="mb-6">
             <Text className="text-3xl font-bold text-foreground mb-2">Catering Requests</Text>
-            <Text className="text-muted text-sm">Manage event catering requests</Text>
+            <Text className="text-muted text-sm">Customer catering service requests</Text>
           </View>
 
           {/* Filter Buttons */}
           <View className="flex-row gap-2 mb-6 flex-wrap">
-            {(['all', 'pending', 'approved', 'rejected', 'completed'] as const).map(status => (
+            {(['all', 'pending', 'approved', 'rejected'] as const).map(status => (
               <TouchableOpacity
                 key={status}
                 className={`px-4 py-2 rounded-full ${
-                  filterStatus === status
-                    ? 'bg-primary'
-                    : 'bg-surface border border-border'
+                  filterStatus === status ? 'bg-primary' : 'bg-surface border border-border'
                 }`}
                 onPress={() => setFilterStatus(status)}
               >
@@ -131,9 +143,7 @@ export default function AdminCateringScreen() {
                           ? 'bg-success/20'
                           : request.status === 'rejected'
                           ? 'bg-error/20'
-                          : request.status === 'pending'
-                          ? 'bg-warning/20'
-                          : 'bg-success/20'
+                          : 'bg-warning/20'
                       }`}
                     >
                       <Text
@@ -142,9 +152,7 @@ export default function AdminCateringScreen() {
                             ? 'text-success'
                             : request.status === 'rejected'
                             ? 'text-error'
-                            : request.status === 'pending'
-                            ? 'text-warning'
-                            : 'text-success'
+                            : 'text-warning'
                         }`}
                       >
                         {request.status}
@@ -153,9 +161,13 @@ export default function AdminCateringScreen() {
                   </View>
 
                   {/* Request Details */}
-                  <View className="gap-2 mb-3">
+                  <View className="gap-2 mb-3 pb-3 border-b border-border">
                     <View className="flex-row items-center justify-between">
-                      <Text className="text-sm text-muted">Date</Text>
+                      <Text className="text-sm text-muted">Phone</Text>
+                      <Text className="text-sm text-foreground font-semibold">{request.customerPhone}</Text>
+                    </View>
+                    <View className="flex-row items-center justify-between">
+                      <Text className="text-sm text-muted">Event Date</Text>
                       <Text className="text-sm text-foreground font-semibold">{request.eventDate}</Text>
                     </View>
                     <View className="flex-row items-center justify-between">
@@ -167,14 +179,14 @@ export default function AdminCateringScreen() {
                       <Text className="text-sm text-primary font-bold">₹{request.budget}</Text>
                     </View>
                     <View className="flex-row items-center justify-between">
-                      <Text className="text-sm text-muted">Phone</Text>
-                      <Text className="text-sm text-foreground font-semibold">{request.phone}</Text>
+                      <Text className="text-sm text-muted">Submitted</Text>
+                      <Text className="text-sm text-foreground font-semibold">{request.submittedDate}</Text>
                     </View>
                   </View>
 
                   {/* Action Buttons */}
                   {request.status === 'pending' && (
-                    <View className="flex-row gap-2 pt-3 border-t border-border">
+                    <View className="flex-row gap-2">
                       <TouchableOpacity
                         className="flex-1 bg-success/20 rounded-lg py-2 items-center"
                         onPress={() => handleApprove(request.id)}

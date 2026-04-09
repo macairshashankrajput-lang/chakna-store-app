@@ -51,36 +51,42 @@ function RootNavigator() {
   }
 
   if (!state.userToken) {
-    // User is not signed in - show auth stack
     return (
-      <Stack
-        screenOptions={{
-          headerShown: false,
-        }}
-      >
+      <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       </Stack>
     );
   }
 
-  // User is signed in - show role-based navigation
   const userRole = state.user?.role;
 
-  return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
-      {userRole === "customer" && (
+  if (userRole === 'customer') {
+    return (
+      <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(customer)" options={{ headerShown: false }} />
-      )}
-      {userRole === "vendor" && (
+      </Stack>
+    );
+  }
+
+  if (userRole === 'vendor') {
+    return (
+      <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(vendor)" options={{ headerShown: false }} />
-      )}
-      {userRole === "admin" && (
+      </Stack>
+    );
+  }
+
+  if (userRole === 'admin') {
+    return (
+      <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(admin)" options={{ headerShown: false }} />
-      )}
+      </Stack>
+    );
+  }
+
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
     </Stack>
   );
 }
