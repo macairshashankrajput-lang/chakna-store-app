@@ -1,195 +1,170 @@
-# Chakna Store - Project TODO
+# Chakna Store App - Production Build Checklist
 
-## Phase 1: Core Setup & Authentication
-- [x] Set up Firebase configuration with provided credentials
-- [x] Implement Firebase authentication (Email/Password)
-- [x] Create authentication context/provider
-- [x] Build Splash Screen with app logo
-- [ ] Build Onboarding carousel (3 slides)
-- [x] Build Login Screen with validation
-- [x] Build Register Screen (customer only)
-- [x] Implement role-based routing (Customer/Vendor/Admin)
-- [x] Set up secure token storage (AsyncStorage/SecureStore)
-- [x] Add default admin credentials (Shashank Rajput - xyz@gmail.com)
-- [x] Add demo credentials display on login screen
-- [x] Fix authentication system - remove vendor/admin registration
-- [x] Fix TypeScript errors and remove problematic files
-- [x] Create authentication unit tests (18 tests passing)
-- [x] Create authentication integration tests (28 tests passing)
-- [x] Verify login flow works correctly
-- [x] Verify registration flow works correctly
+## Phase 1: Production Auth (Remove Demo Logins)
+- [ ] Remove customer@test.com demo account
+- [ ] Remove vendor@test.com demo account
+- [ ] Keep only admin default (xyz@gmail.com / asdfghjkl)
+- [ ] Update signup to customer-only registration
+- [ ] Add phone number validation on signup
+- [ ] Add referral code input field on signup
+- [ ] Implement production-ready auth flow
+- [ ] Test login/signup end-to-end
 
-## Phase 2: Customer Flow - Core Navigation
-- [ ] Create Customer bottom tab navigation
-- [ ] Build Customer Home screen (service cards)
-- [ ] Create Profile screen (basic user info)
-- [ ] Build Order History screen
-- [ ] Create Favorites screen
-- [ ] Implement logout functionality
+## Phase 2: Modern UI Redesign
+- [ ] Update theme to professional white/orange scheme
+- [ ] Add modern icons (Material Design 3)
+- [ ] Redesign login screen with modern layout
+- [ ] Redesign register screen
+- [ ] Update navigation bar with better styling
+- [ ] Improve card layouts and spacing
+- [ ] Add loading states and animations
+- [ ] Update all screens with consistent design
 
 ## Phase 3: Chakna Store (Food Delivery)
-- [ ] Build Store Listing page with search & filters
-- [ ] Build Menu Listing page with categories
-- [ ] Build Product Detail page with image gallery
-- [ ] Implement quantity selector and customization UI
-- [ ] Create Cart page with item management
-- [ ] Build Checkout page with address selection
-- [ ] Integrate payment method selector UI
-- [ ] Build Payment Success page
-- [ ] Implement cart state management (Context/Zustand)
-- [ ] Create order confirmation flow
+- [ ] Create menu listing screen with categories
+- [ ] Add menu item cards with images and prices
+- [ ] Build product detail screen
+- [ ] Implement add to cart functionality
+- [ ] Create cart screen with quantity controls
+- [ ] Build checkout screen with address selection
+- [ ] Integrate payment method selector
+- [ ] Add order confirmation screen
+- [ ] Implement order history view
+- [ ] Add order tracking
 
-## Phase 4: Catering Services
-- [ ] Build Catering Form page (event details)
-- [ ] Build Menu Selection page (Veg/Non-Veg options)
-- [ ] Build Review & Submit page
-- [ ] Build Request Submitted confirmation page
-- [ ] Implement form validation
-- [ ] Create catering request state management
+## Phase 4: Catering Service
+- [ ] Create catering form with customer details
+- [ ] Add event details fields (date, guest count, etc.)
+- [ ] Add menu type selection (Veg/Non-Veg/Both/Alcohol)
+- [ ] Add default menu suggestions
+- [ ] Add notes/special requests field
+- [ ] Implement form submission to Firestore
+- [ ] Add catering request status tracking
+- [ ] Build request confirmation screen
 
-## Phase 5: Tiffin Services
-- [ ] Build Vendor Selection page
-- [ ] Build Subscription/Points page
-- [ ] Build Calendar View page (2-day prior editing)
-- [ ] Build Menu Customization page
-- [ ] Implement calendar state management
-- [ ] Create points/subscription tracking
+## Phase 5: Tiffin Service
+- [ ] Create menu selection screen
+- [ ] Add daily menu options (Breakfast/Lunch/Dinner)
+- [ ] Build calendar UI for month view
+- [ ] Implement points wallet system
+- [ ] Add subscription plans
+- [ ] Build order editing (2-day prior condition)
+- [ ] Implement complimentary date change feature
+- [ ] Add delivery time selection
+- [ ] Build calendar view for upcoming orders
+- [ ] Implement add-ons and menu customization
 
-## Phase 6: Reviews & Ratings
-- [ ] Build Review List screen
-- [ ] Build Add Review screen with star rating
-- [ ] Implement photo upload for reviews
-- [ ] Create review submission flow
+## Phase 6: Vendor Interface
+- [ ] Create vendor dashboard with KPI cards
+- [ ] Build orders list with filters (Chakna/Catering/Tiffin)
+- [ ] Add order status update functionality
+- [ ] Build Tiffin calendar view for vendors
+- [ ] Implement order acceptance/rejection
+- [ ] Add order sharing (WhatsApp/SMS)
+- [ ] Build vendor profile management
+- [ ] Add payment tracking for vendors
 
-## Phase 7: Vendor Flow
-- [ ] Create Vendor bottom tab navigation
-- [ ] Build Vendor Dashboard with KPI cards
-- [ ] Build Orders List page
-- [ ] Build Order Detail page with status update buttons
-- [ ] Build Tiffin Management calendar view
-- [ ] Build Daily Orders list for Tiffin
-- [ ] Build Status Update screen
-- [ ] Create Share Order functionality (WhatsApp/SMS/Email)
-- [ ] Implement order state management
+## Phase 7: Admin Dashboard
+- [ ] Create admin dashboard overview
+- [ ] Build menu management (Add/Edit/Delete)
+- [ ] Add image upload for menu items
+- [ ] Build coupon/discount management
+- [ ] Add referral system management
+- [ ] Create reminder system for past catering clients
+- [ ] Build data export (Excel/CSV)
+- [ ] Add customer management view
+- [ ] Build order management with filters
+- [ ] Implement Tiffin order assignment to vendors
+- [ ] Add notifications management
 
-## Phase 8: Admin Flow
-- [ ] Create Admin bottom tab navigation
-- [ ] Build Admin Dashboard with KPI cards
-- [ ] Build Menu Management list
-- [ ] Build Add/Edit Menu item page with image upload
-- [ ] Build Reviews Management page
-- [ ] Build Customer Data Export page (CSV/Excel)
-- [ ] Build Notifications page with filters
-- [ ] Build Reminder System page
-- [ ] Build Catering Requests management (list & detail)
-- [ ] Implement admin state management
+## Phase 8: Payment & Wallet System
+- [ ] Create Razorpay payment gateway structure
+- [ ] Implement points wallet system
+- [ ] Add wallet top-up functionality
+- [ ] Build referral discount application
+- [ ] Implement coupon code validation
+- [ ] Add payment history tracking
+- [ ] Build receipt generation
+- [ ] Implement points calculation based on order amount
 
-## Phase 9: Global Components & Utilities
-- [ ] Create reusable Button components (Primary, Secondary)
-- [ ] Create Card component
-- [ ] Create Status Chip component
-- [ ] Create Modal/Dialog component
-- [ ] Create Toast/Snackbar component
-- [ ] Create Loader/Skeleton component
-- [ ] Create Input Field component with validation
-- [ ] Create Dropdown/Picker component
-- [ ] Implement theme colors and styling
-- [ ] Create utility functions (date formatting, currency, etc.)
-
-## Phase 10: Firebase Integration
-- [ ] Set up Firestore database schema
+## Phase 9: Real-time Features
 - [ ] Implement real-time order status updates
-- [ ] Set up Firebase Cloud Messaging (push notifications)
+- [ ] Add push notifications for orders
+- [ ] Build order tracking with live updates
+- [ ] Add vendor notification system
+- [ ] Implement customer notifications
+- [ ] Add admin alerts for new orders
+- [ ] Implement Tiffin reminder notifications
+
+## Phase 10: Additional Features
+- [ ] Map integration for delivery location
+- [ ] Review and rating system
+- [ ] Address management
+- [ ] Vendor location map view
+- [ ] Social media sharing
+- [ ] Order history with filters
+- [ ] Favorites/saved items
+- [ ] Search functionality across all services
+
+## Phase 11: Firebase Integration
+- [ ] Set up Firestore database schema
+- [ ] Implement real-time order updates
+- [ ] Set up Firebase Cloud Messaging
 - [ ] Implement user profile storage
 - [ ] Create order history storage
 - [ ] Implement review storage
 - [ ] Set up catering request storage
 - [ ] Create tiffin subscription tracking
 
-## Phase 11: Maps & Location Integration
-- [ ] Integrate Google Maps for location picker
-- [ ] Implement delivery address selection
-- [ ] Build real-time delivery tracking map
-- [ ] Add vendor location display
-- [ ] Implement geofencing for delivery zones
-
-## Phase 12: Payment Integration
-- [ ] Set up Razorpay/Stripe payment gateway
-- [ ] Implement payment method selector
-- [ ] Create payment processing flow
-- [ ] Handle payment success/failure
-- [ ] Implement wallet/points payment option
-- [ ] Create payment history tracking
-
-## Phase 13: Social Sharing & Communication
-- [ ] Implement WhatsApp sharing
-- [ ] Implement SMS sharing
-- [ ] Implement Email sharing
-- [ ] Create share templates for orders
-- [ ] Implement referral sharing
-
-## Phase 14: Testing & Polish
-- [x] Test authentication flows (46 unit + integration tests passing)
-- [ ] Test customer order flow (end-to-end)
-- [ ] Test vendor order management
-- [ ] Test admin controls
-- [ ] Test payment processing
-- [ ] Test push notifications
-- [ ] Test real-time updates
-- [ ] Optimize performance
-- [ ] Fix UI/UX issues
-- [ ] Test on iOS and Android
-
-## Phase 15: Deployment & Delivery
-- [ ] Create app logo and branding assets
-- [ ] Update app.config.ts with branding
+## Phase 12: Testing & Deployment
+- [ ] End-to-end testing of all flows
+- [ ] Test payment gateway integration
+- [ ] Verify Firebase connectivity
+- [ ] Test all user roles (Admin, Customer, Vendor)
+- [ ] Performance optimization
+- [ ] Bug fixes and polish
+- [ ] Production deployment preparation
+- [ ] Create app logo and branding
 - [ ] Generate APK/IPA builds
 - [ ] Test on physical devices
-- [ ] Create user documentation
-- [ ] Prepare deployment checklist
-- [ ] Final QA and sign-off
 
+## CRITICAL FEATURES FROM MASTER PLAN
 
-## CRITICAL FIXES REQUIRED
+### Authentication
+- [x] Default admin account (xyz@gmail.com)
+- [ ] Customer signup with phone number
+- [ ] Referral code on signup
+- [ ] Production-ready (no demo accounts)
 
-### Theme & Design
-- [ ] Update color scheme to playful white/orange combo
-- [ ] Fix theme.config.js with new colors
-- [ ] Update all screens with new color scheme
-- [ ] Improve overall UI/UX design
+### Customer Services
+- [ ] Chakna Store - Food delivery like Swiggy/Zomato
+- [ ] Catering - Event booking with form
+- [ ] Tiffin - Subscription with calendar UI and points wallet
 
-### Authentication Flow
-- [ ] Fix login/signup routing
-- [ ] Implement real Firebase authentication
-- [ ] Fix Firebase connectivity issues
-- [ ] Test complete auth flow end-to-end
+### Vendor Features
+- [ ] 12 vendors available by default
+- [ ] Order management with status updates
+- [ ] Tiffin calendar management
+- [ ] Order sharing capability
 
-### Customer Interface
-- [ ] Fix bottom navigation bugs
-- [ ] Fix UI alignment issues
-- [ ] Complete customer service screens
-- [ ] Implement Chakna Store browsing
-- [ ] Implement Catering service
-- [ ] Implement Tiffin service
-- [ ] Fix cart functionality
+### Admin Features
+- [ ] Menu management with image upload
+- [ ] Coupon and discount management
+- [ ] Referral system management
+- [ ] Customer reminder system
+- [ ] Data export (Excel/CSV)
+- [ ] Tiffin order assignment to vendors
 
-### Admin Interface
-- [ ] Make all admin buttons functional
-- [ ] Implement menu management
-- [ ] Implement vendor management
-- [ ] Implement reviews management
-- [ ] Implement customer data export
-- [ ] Fix admin dashboard features
+### Payment System
+- [ ] Razorpay integration
+- [ ] Points wallet system
+- [ ] Referral discounts
+- [ ] Coupon application
 
-### Vendor Interface
-- [ ] Implement vendor management
-- [ ] Make vendor buttons functional
-- [ ] Implement order management
-- [ ] Implement tiffin management
-- [ ] Fix vendor dashboard
-
-### Menu Integration
-- [ ] Fetch real menu from The Chakna Co
-- [ ] Parse and integrate menu data
-- [ ] Display menu items in app
-- [ ] Implement menu filtering/search
+### Tiffin Special Features
+- [ ] Points-based payment (add 5000 rupee = 5000 points)
+- [ ] Calendar UI for order management
+- [ ] 3 delivery times per day
+- [ ] 2-day prior editing allowed
+- [ ] 1 complimentary date change per order
+- [ ] Add-ons and menu customization

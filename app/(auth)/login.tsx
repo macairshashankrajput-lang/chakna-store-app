@@ -12,14 +12,12 @@ import { useAuth } from '@/lib/auth-context';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { signIn, state, getTestUsers } = useAuth();
+  const { signIn, state } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showDemoCredentials, setShowDemoCredentials] = useState(false);
 
-  const testUsers = getTestUsers();
 
   const handleLogin = async () => {
     if (!email.trim()) {
@@ -45,16 +43,7 @@ export default function LoginScreen() {
     }
   };
 
-  const handleQuickLogin = async (testUser: typeof testUsers[0]) => {
-    setIsLoading(true);
-    try {
-      await signIn(testUser.email, testUser.password);
-    } catch (error) {
-      Alert.alert('Login Failed', state.error || 'Demo login failed');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+
 
   return (
     <ScreenContainer className="flex-1 bg-background">
@@ -140,37 +129,9 @@ export default function LoginScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Demo Credentials Section */}
+          {/* Admin Support Info */}
           <View className="mt-8 pt-6 border-t border-border">
-            <TouchableOpacity
-              onPress={() => setShowDemoCredentials(!showDemoCredentials)}
-              className="flex-row items-center justify-between"
-            >
-              <Text className="text-sm font-semibold text-muted">Demo Credentials</Text>
-              <Text className="text-lg text-muted">{showDemoCredentials ? '−' : '+'}</Text>
-            </TouchableOpacity>
-
-            {showDemoCredentials && (
-              <View className="mt-4 gap-2">
-                {testUsers.map((user, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    className="bg-surface rounded-lg p-3 border border-border active:opacity-70"
-                    onPress={() => handleQuickLogin(user)}
-                    disabled={isLoading}
-                  >
-                    <View className="flex-row items-center justify-between">
-                      <View className="flex-1">
-                        <Text className="text-sm font-semibold text-foreground">{user.name}</Text>
-                        <Text className="text-xs text-muted">{user.email}</Text>
-                        <Text className="text-xs text-muted capitalize">Role: {user.role}</Text>
-                      </View>
-                      <Text className="text-primary font-bold text-xs">Login</Text>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
+            <Text className="text-xs text-muted text-center">For customer signup or admin support, please contact us.</Text>
           </View>
         </View>
       </ScrollView>

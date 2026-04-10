@@ -19,18 +19,4 @@ export const DEFAULT_TEST_USERS = [
     password: 'asdfghjkl',
     role: 'admin' as const,
   },
-  {
-    name: 'Test Customer',
-    email: 'customer@test.com',
-    phone: '9876543210',
-    password: 'password123',
-    role: 'customer' as const,
-  },
-  {
-    name: 'Test Vendor',
-    email: 'vendor@test.com',
-    phone: '9876543211',
-    password: 'password123',
-    role: 'vendor' as const,
-  },
 ];
