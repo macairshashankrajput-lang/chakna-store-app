@@ -125,7 +125,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    restoreToken();
+    // Clear stored tokens on app startup to ensure fresh login flow
+    // TODO: Remove this after testing - only for development
+    const clearStorageOnStartup = async () => {
+      try {
+        // Uncomment to clear storage on each app start (for testing)
+        // await AsyncStorage.removeItem('userToken');
+        // await AsyncStorage.removeItem('user');
+      } catch (e) {
+        console.error('Failed to clear storage:', e);
+      }
+      restoreToken();
+    };
+    clearStorageOnStartup();
   }, [restoreToken]);
 
   const signIn = useCallback(async (email: string, password: string) => {
