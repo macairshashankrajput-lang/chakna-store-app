@@ -3,7 +3,7 @@
  * Main entry point for customers with service selection
  */
 
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+
 import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/screen-container';
 import { useAuth } from '@/lib/auth-context';

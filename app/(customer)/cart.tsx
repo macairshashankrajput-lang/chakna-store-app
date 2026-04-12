@@ -1,0 +1,84 @@
+/**
+ * Cart Screen
+ * Quantity controls, checkout
+ */
+
+import { View, Text, FlatList, TouchableOpacity } from 'react-native';
+import { useCart } from '@/lib/cart-context';
+import { useRouter } from 'expo-router';
+import { ScreenContainer } from '@/components/screen-container';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+
+export default function CartScreen() {
+    const { state, updateQuantity, removeItem, clearCart } = useCart();
+    const router = useRouter();
+
+    const renderItem = ({ item }: { item: any }) => (
+        <View className="bg-surface rounded-xl p-4 mb-4 shadow-md border border-border">
+            <View className="flex-row items-center gap-4">
+                <View className="w-16 h-16 bg-primary/10 rounded-lg items-center justify-center">
+                    <IconSymbol name="utensils" color="#FF6B35" size={20} />
+                </View>
+                <View className="flex-1">
+                    <Text className="font-bold text-foreground">{item.product.name}</Text>
+                    <Text className="text-sm text-muted">{item.product.description}</Text>
+                </View>
+                <View className="flex-row items-center gap-3">
+                    <TouchableOpacity onPress={() => updateQuantity(item.product.id, item.quantity - 1)}>
+                        <View className="w-8 h-8 bg-border rounded-full items-center justify-center">
+                            <Text className="font-bold text-foreground">-</Text>
+                        </View>
+                    </TouchableOpacity>
+                    <Text className="text-lg font-bold">{item.quantity}</Text>
+                    <TouchableOpacity onPress={() => updateQuantity(item.product.id, item.quantity + 1)}>
+                        <View className="w-8 h-8 bg-primary rounded-full items-center justify-center">
+                            <Text className="text-background font-bold">+</Text>
+                        </View>
+                    </TouchableOpacity>
+                </View>
+                <TouchableOpacity onPress={() => removeItem(item.product.id)}>
+                    <IconSymbol name="trash" color="#EF4444" size={20} />
+                </TouchableOpacity>
+            </View>
+            <Text className="text-right font-bold text-lg mt-2">₹{(item.product.price * item.quantity).toFixed(0)}</Text>
+        </View>
+    );
+
+    const handleCheckout = () => {
+        router.push('/checkout');
+    };
+
+    return (
+        <ScreenContainer className="flex-1 bg-background">
+            <View className="px-4 pt-6">
+                <Text className="text-3xl font-bold text-foreground mb-6">Your Cart ({state.items.length})</Text>
+                {state.items.length === 0 ? (
+                    <View className="flex-1 items-center justify-center">
+                        <IconSymbol name="shopping-cart" color="muted" size={64} />
+                        <Text className="text-2xl font-bold text-foreground mt-4">Your cart is empty</Text>
+                        <Text className="text-muted text-center mt-2 px-8">Add items from the menu to get started</Text>
+                    </View>
+                ) : (
+                    <FlatList
+                        data={state.items}
+                        renderItem={renderItem}
+                        keyExtractor={(item) => item.product.id}
+                        contentContainerStyle={{ paddingBottom: 150 }}
+                    />
+                )}
+                {state.items.length > 0 && (
+                    <View className="bg-surface border-t border-border p-6 absolute bottom-20 left-4 right-4 rounded-2xl shadow-2xl">
+                        <View className="flex-row justify-between mb-4">
+                            <Text className="text-lg">Subtotal</Text>
+                            <Text className="text-xl font-bold">₹{state.totals.subtotal.toFixed(0)}</Text>
+                        </View>
+                        <TouchableOpacity className="bg-primary rounded-2xl py-4 px-6 items-center shadow-lg active:scale-95" onPress={handleCheckout}>
+                            <Text className="text-background font-bold text-lg">Checkout ₹{state.totals.total.toFixed(0)}</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
+            </View>
+        </ScreenContainer>
+    );
+}
+

@@ -17,20 +17,15 @@ import {
   onSnapshot,
   QueryConstraint,
 } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 
-// Firebase configuration from your credentials
-const firebaseConfig = {
-  apiKey: 'AIzaSyDummyKey', // Replace with actual key
-  authDomain: 'thechaknastore.firebaseapp.com',
-  projectId: 'thechaknastore',
-  storageBucket: 'thechaknastore.firebasestorage.app',
-  messagingSenderId: '274624443566',
-  appId: '1:274624443566:web:9ee8fa8bd5c4f49de1293f',
-};
+import firebaseConfig from './firebase-config';
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+// Initialize Firebase with env config
+export const firebaseApp = initializeApp(firebaseConfig as any);
+export const db = getFirestore(firebaseApp);
+export const auth = getAuth(firebaseApp);
+
 
 // ============================================================================
 // COLLECTION TYPES
@@ -297,7 +292,8 @@ export const vendorService = {
   // Get all vendors
   getAllVendors: async () => {
     const querySnapshot = await getDocs(collection(db, 'vendors'));
-   return querySnapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() } as Customer));  },
+    return querySnapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() } as Customer));
+  },
 
   // Get active vendors
   getActiveVendors: async () => {

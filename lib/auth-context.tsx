@@ -5,7 +5,9 @@
 
 import React, { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { DEFAULT_ADMIN_CREDENTIALS, DEFAULT_TEST_USERS } from './default-credentials';
+import { DEFAULT_ADMIN_CREDENTIALS } from './default-credentials';
+import * as firebaseAuth from './firebase-auth';
+import { firebaseApp, auth } from './firebase-service';
 
 export type UserRole = 'customer' | 'vendor' | 'admin';
 
@@ -102,7 +104,6 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   restoreToken: () => Promise<void>;
   clearError: () => void;
-  getTestUsers: () => typeof DEFAULT_TEST_USERS;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -124,53 +125,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Initial restore on mount
   useEffect(() => {
-    // Clear stored tokens on app startup to ensure fresh login flow
-    // TODO: Remove this after testing - only for development
-    const clearStorageOnStartup = async () => {
-      try {
-        // Uncomment to clear storage on each app start (for testing)
-        // await AsyncStorage.removeItem('userToken');
-        // await AsyncStorage.removeItem('user');
-      } catch (e) {
-        console.error('Failed to clear storage:', e);
-      }
-      restoreToken();
-    };
-    clearStorageOnStartup();
+    restoreToken();
   }, [restoreToken]);
 
   const signIn = useCallback(async (email: string, password: string) => {
     try {
       dispatch({ type: 'CLEAR_ERROR' });
-
-      // Check against default test users (including admin)
-      const testUser = DEFAULT_TEST_USERS.find(
-        user => user.email === email && user.password === password
-      );
-
-      if (!testUser) {
-        throw new Error('Invalid email or password');
-      }
-
-      const mockUser: User = {
-        id: 'user_' + Date.now(),
-        email: testUser.email,
-        name: testUser.name,
-        phone: testUser.phone,
-        role: testUser.role,
-        createdAt: new Date().toISOString(),
-      };
-
-      const mockToken = 'token_' + Date.now();
-
-      await AsyncStorage.setItem('userToken', mockToken);
-      await AsyncStorage.setItem('user', JSON.stringify(mockUser));
-
+      const user = await firebaseAuth.signIn(email, password);
+      const token = await auth.currentUser!.getIdToken();
+      await Promise.all([
+        AsyncStorage.setItem('userToken', token),
+        AsyncStorage.setItem('user', JSON.stringify(user))
+      ]);
+      console.log('[AuthContext] Dispatching SIGN_IN_SUCCESS');
       dispatch({
         type: 'SIGN_IN_SUCCESS',
-        payload: { token: mockToken, user: mockUser },
+        payload: { token, user },
       });
+      console.log('[AuthContext] State after sign in:', { user: user.email, role: user.role });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Sign in failed';
       dispatch({ type: 'SET_ERROR', payload: errorMessage });
@@ -181,29 +155,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = useCallback(async (userData: Omit<User, 'id' | 'createdAt'> & { password: string }) => {
     try {
       dispatch({ type: 'CLEAR_ERROR' });
-
-      // Validate email is not already registered
-      const existingUser = DEFAULT_TEST_USERS.find(u => u.email === userData.email);
-      if (existingUser) {
-        throw new Error('Email already registered');
-      }
-
-      // TODO: Integrate with Firebase Authentication
-      // For now, using mock implementation
-      const mockUser: User = {
-        ...userData,
-        id: 'user_' + Date.now(),
-        createdAt: new Date().toISOString(),
-      };
-
-      const mockToken = 'token_' + Date.now();
-
-      await AsyncStorage.setItem('userToken', mockToken);
-      await AsyncStorage.setItem('user', JSON.stringify(mockUser));
-
+      const { email, password, phone, referralCode, name } = userData;
+      const user = await firebaseAuth.signUpCustomer(email, password, name, phone, referralCode);
+      const token = await auth.currentUser!.getIdToken();
+      await Promise.all([
+        AsyncStorage.setItem('userToken', token),
+        AsyncStorage.setItem('user', JSON.stringify(user))
+      ]);
       dispatch({
         type: 'SIGN_UP_SUCCESS',
-        payload: { token: mockToken, user: mockUser },
+        payload: { token, user },
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Sign up failed';
@@ -214,9 +175,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     try {
-      // TODO: Integrate with Firebase Authentication
-      await AsyncStorage.removeItem('userToken');
-      await AsyncStorage.removeItem('user');
+      await firebaseAuth.signOutUser();
       dispatch({ type: 'SIGN_OUT' });
     } catch (error) {
       console.error('Sign out failed:', error);
@@ -227,7 +186,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'CLEAR_ERROR' });
   }, []);
 
-  const getTestUsers = useCallback(() => DEFAULT_TEST_USERS, []);
+  // Removed - production only
 
   const value: AuthContextType = {
     state,
@@ -236,7 +195,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signOut,
     restoreToken,
     clearError,
-    getTestUsers,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

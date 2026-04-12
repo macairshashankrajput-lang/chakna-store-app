@@ -51,7 +51,8 @@ function RootNavigator() {
     return null;
   }
 
-  if (!state.userToken) {
+  if (!state.user || !state.userToken) {
+    console.log('[RootLayout] No user or token, showing auth:', { hasUser: !!state.user, hasToken: !!state.userToken });
     return (
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
@@ -59,7 +60,8 @@ function RootNavigator() {
     );
   }
 
-  const userRole = state.user?.role;
+  const userRole = state.user!.role;
+  console.log('[RootLayout] User role:', userRole);
 
   if (userRole === 'customer') {
     return (
