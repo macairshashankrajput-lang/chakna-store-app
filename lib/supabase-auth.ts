@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as customAuth from '@/lib/_core/auth';
 import { startOAuthLogin } from '@/constants/oauth';
 import { supabase } from './supabase-service';
+import { DEFAULT_ADMIN_CREDENTIALS } from './default-credentials';
 import type { UserRole, User } from './auth-context';
 
 function normalizePhone(phone: string): string {
@@ -52,7 +53,150 @@ function supabaseUserToAppUser(
     };
 }
 
-async function lookupIdentifierEmail(identifier: string): Promise<string> {
+function getAdminIdentifierEmail(identifier: string): string | null {
+    const trimmedLower = identifier.trim().toLowerCase();
+    const adminEmail = DEFAULT_ADMIN_CREDENTIALS.email.toLowerCase();
+    const adminUsername = DEFAULT_ADMIN_CREDENTIALS.username.toLowerCase();
+    const adminPhone = normalizePhone(DEFAULT_ADMIN_CREDENTIALS.phone);
+    const normalizedIdentifierPhone = normalizePhone(identifier);
+    const normalizedVariants = new Set<string>([adminPhone]);
+    normalizedVariants.add(`91${adminPhone}`);
+    normalizedVariants.add(`+91${adminPhone}`);
+    if (adminPhone.startsWith('91')) {
+        normalizedVariants.add(adminPhone.replace(/^91/, ''));
+    }
+
+    if (trimmedLower === adminUsername || trimmedLower === adminEmail) {
+        return adminEmail;
+    }
+    if (normalizedIdentifierPhone && normalizedVariants.has(normalizedIdentifierPhone)) {
+        return adminEmail;
+    }
+    return null;
+}
+
+function getProfileTables(): string[] {
+    return ['users', 'customers'];
+}
+
+function isUserProfileSchemaError(error: any): boolean {
+    if (!error || typeof error.message !== 'string') {
+        return false;
+    }
+    const message = error.message as string;
+    return /column .* does not exist|42703|invalid column|undefined .*username|undefined .*openId/i.test(message);
+}
+
+async function queryProfileEmailByUsername(username: string): Promise<string | null> {
+    const adminEmail = getAdminIdentifierEmail(username);
+    if (adminEmail) {
+        return adminEmail;
+    }
+
+    const tables = getProfileTables();
+
+    for (const table of tables) {
+        const usernameQueries = [
+            { field: 'username', value: username },
+            { field: 'id', value: username },
+        ];
+
+        for (const queryField of usernameQueries) {
+            const { data, error } = await supabase
+                .from(table)
+                .select('email')
+                .eq(queryField.field, queryField.value)
+                .limit(1)
+                .maybeSingle();
+
+            if (error) {
+                if (isUserProfileSchemaError(error)) {
+                    continue;
+                }
+                console.error(`[SupabaseAuth] username lookup failed on ${table}.${queryField.field}:`, error);
+                break;
+            }
+
+            if (data?.email) {
+                return data.email.toLowerCase();
+            }
+        }
+    }
+
+    return null;
+}
+
+async function queryProfileEmailByPhone(normalizedPhone: string): Promise<string | null> {
+    const adminEmail = getAdminIdentifierEmail(normalizedPhone);
+    if (adminEmail) {
+        return adminEmail;
+    }
+
+    const tables = getProfileTables();
+    const variants = new Set<string>([normalizedPhone]);
+    if (normalizedPhone.length === 10) {
+        variants.add(`91${normalizedPhone}`);
+        variants.add(`+91${normalizedPhone}`);
+    } else if (normalizedPhone.length === 12 && normalizedPhone.startsWith('91')) {
+        variants.add(`+${normalizedPhone}`);
+    }
+
+    const orExpression = Array.from(variants)
+        .map((value) => `phone.eq.${value}`)
+        .join(',');
+
+    for (const table of tables) {
+        const { data, error } = await supabase
+            .from(table)
+            .select('email')
+            .or(orExpression)
+            .limit(1)
+            .maybeSingle();
+
+        if (error) {
+            if (isUserProfileSchemaError(error)) {
+                continue;
+            }
+            console.error(`[SupabaseAuth] phone lookup failed on ${table}:`, error);
+            continue;
+        }
+
+        if (data?.email) {
+            return data.email.toLowerCase();
+        }
+    }
+
+    return null;
+}
+
+async function lookupReferralCode(referralCode: string): Promise<boolean> {
+    const tables = getProfileTables();
+
+    for (const table of tables) {
+        const { data, error } = await supabase
+            .from(table)
+            .select('id')
+            .eq('referral_code', referralCode)
+            .limit(1)
+            .maybeSingle();
+
+        if (error) {
+            if (isUserProfileSchemaError(error)) {
+                continue;
+            }
+            console.error(`[SupabaseAuth] referral lookup failed on ${table}:`, error);
+            continue;
+        }
+
+        if (data) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+async function lookupIdentifierEmail(identifier: string, options: { allowUnknownUsernameFallback?: boolean } = { allowUnknownUsernameFallback: true }): Promise<string> {
     const trimmed = identifier.trim();
     if (!trimmed) {
         throw new Error('Please enter a valid username or phone number.');
@@ -67,53 +211,95 @@ async function lookupIdentifierEmail(identifier: string): Promise<string> {
     const isPhoneLookup = !!normalizedPhone && /^[+0-9 ]+$/.test(trimmed);
 
     if (isPhoneLookup) {
-        const variants = new Set<string>([normalizedPhone]);
-        if (normalizedPhone.length === 10) {
-            variants.add(`91${normalizedPhone}`);
-            variants.add(`+91${normalizedPhone}`);
-        } else if (normalizedPhone.length === 12 && normalizedPhone.startsWith('91')) {
-            variants.add(`+${normalizedPhone}`);
+        const email = await queryProfileEmailByPhone(normalizedPhone);
+        if (email) {
+            return email;
         }
-
-        const orExpression = Array.from(variants)
-            .map((value) => `phone.eq.${value}`)
-            .join(',');
-
-        const { data, error } = await supabase
-            .from('users')
-            .select('email')
-            .or(orExpression)
-            .limit(1)
-            .maybeSingle();
-
-        if (error) {
-            console.error('[SupabaseAuth] phone lookup failed:', error);
-        }
-
-        if (data?.email) {
-            return data.email.toLowerCase();
-        }
-
         throw new Error('No account found for this phone number. Please verify your number or sign up.');
     }
 
+    const foundEmail = await queryProfileEmailByUsername(username);
     const authEmail = getAuthEmailForUsername(username);
-    const { data, error } = await supabase
-        .from('users')
-        .select('email')
-        .eq('username', username)
-        .limit(1)
-        .maybeSingle();
+    if (foundEmail) {
+        return foundEmail;
+    }
+
+    if (options.allowUnknownUsernameFallback) {
+        return authEmail;
+    }
+
+    throw new Error('No account found for this username. Please verify your username or sign up.');
+}
+
+async function queryProfileByAuthId(authId: string): Promise<Partial<User> | null> {
+    const tables = getProfileTables();
+
+    for (const table of tables) {
+        const attempts = [
+            table === 'users'
+                ? supabase.from(table).select('*').or(`id.eq.${authId},openId.eq.${authId}`).limit(1).maybeSingle()
+                : supabase.from(table).select('*').eq('id', authId).limit(1).maybeSingle(),
+            supabase.from(table).select('*').eq('id', authId).limit(1).maybeSingle(),
+        ];
+
+        for (const attempt of attempts) {
+            const { data, error } = await attempt;
+
+            if (error) {
+                if (isUserProfileSchemaError(error)) {
+                    continue;
+                }
+                console.error(`[SupabaseAuth] profile lookup failed on ${table}:`, error);
+                break;
+            }
+
+            if (data) {
+                return {
+                    id: data.id,
+                    username: data.username ?? data.id,
+                    email: data.email,
+                    name: data.name,
+                    phone: data.phone,
+                    role: data.role as UserRole,
+                    referralCode: data.referralCode ?? data.referral_code ?? undefined,
+                    createdAt: data.createdAt ?? data.created_at ?? new Date().toISOString(),
+                };
+            }
+        }
+    }
+
+    return null;
+}
+
+async function insertProfileForCustomer(userData: User): Promise<void> {
+    const insertData: Record<string, any> = {
+        id: userData.id,
+        name: userData.name,
+        email: userData.email,
+        phone: userData.phone,
+        referral_code: userData.referralCode ?? null,
+        role: userData.role,
+    };
+
+    if (userData.username) {
+        insertData.username = userData.username;
+    }
+
+    const { error } = await supabase.from('customers').insert(insertData);
 
     if (error) {
-        console.error('[SupabaseAuth] username lookup failed:', error);
+        if (isUserProfileSchemaError(error)) {
+            const fallbackData = { ...insertData };
+            delete fallbackData.username;
+            const fallbackResult = await supabase.from('customers').insert(fallbackData);
+            if (fallbackResult.error) {
+                console.warn('[SupabaseAuth] customer profile insert fallback skipped:', fallbackResult.error.message);
+                return;
+            }
+            return;
+        }
+        throw new Error(error.message);
     }
-
-    if (data?.email) {
-        return data.email.toLowerCase();
-    }
-
-    return authEmail;
 }
 
 async function getOrCreateUserProfile(
@@ -123,41 +309,53 @@ async function getOrCreateUserProfile(
     referralCode?: string
 ): Promise<User> {
     const username = (supabaseUser.user_metadata?.username || '').toLowerCase();
-    const { data, error } = await supabase.from('users').select('*').eq('id', supabaseUser.id).maybeSingle();
-    if (error) {
-        throw new Error(error.message);
-    }
 
-    if (data) {
+    const profile = await queryProfileByAuthId(supabaseUser.id);
+    if (profile) {
         return {
-            id: data.id,
-            username: data.username ?? username,
-            email: data.email,
-            name: data.name,
-            phone: data.phone,
-            role: data.role as UserRole,
-            referralCode: data.referralCode ?? data.referral_code ?? undefined,
-            createdAt: data.createdAt,
+            id: profile.id ?? supabaseUser.id,
+            username: profile.username ?? username,
+            email: profile.email ?? supabaseUser.email ?? getAuthEmailForUsername(username),
+            name: profile.name ?? supabaseUser.user_metadata?.name ?? 'Customer',
+            phone: profile.phone ?? normalizePhone(phone ?? supabaseUser.user_metadata?.phone ?? ''),
+            role: profile.role ?? defaultRole,
+            referralCode: profile.referralCode,
+            createdAt: profile.createdAt ?? new Date().toISOString(),
         };
     }
 
     const userData = supabaseUserToAppUser(supabaseUser, defaultRole, phone, referralCode);
-    const { error: insertError } = await supabase.from('users').insert({
-        id: userData.id,
-        openId: userData.id,
-        username: userData.username,
-        email: userData.email,
-        name: userData.name,
-        phone: userData.phone,
-        role: userData.role,
-        loginMethod: 'email',
-        referral_code: userData.referralCode ?? null,
-        points_balance: 0,
-        createdAt: userData.createdAt,
-    });
 
-    if (insertError) {
-        throw new Error(insertError.message);
+    if (username) {
+        const insertData: Record<string, any> = {
+            id: userData.id,
+            openId: userData.id,
+            email: userData.email,
+            name: userData.name,
+            phone: userData.phone,
+            role: userData.role,
+            loginMethod: 'email',
+            referral_code: userData.referralCode ?? null,
+            points_balance: 0,
+            createdAt: userData.createdAt,
+        };
+
+        if (userData.username) {
+            insertData.username = userData.username;
+        }
+
+        const { error: insertError } = await supabase.from('users').insert(insertData);
+
+        if (insertError) {
+            if (isUserProfileSchemaError(insertError)) {
+                console.warn('[SupabaseAuth] user profile insert skipped due to missing or incompatible users schema:', insertError.message);
+                await insertProfileForCustomer(userData);
+                return userData;
+            }
+            throw new Error(insertError.message);
+        }
+    } else {
+        await insertProfileForCustomer(userData);
     }
 
     return userData;
@@ -183,17 +381,8 @@ export async function signUpCustomer(
         const profileEmail = email?.trim().toLowerCase() || authEmail;
 
         if (referralCode) {
-            const { data: referralMatch, error: referralError } = await supabase
-                .from('users')
-                .select('id')
-                .eq('referral_code', referralCode)
-                .limit(1)
-                .maybeSingle();
-            if (referralError) {
-                console.error('[SupabaseAuth] referral lookup failed:', referralError);
-                throw new Error('Unable to validate referral code. Please try again later.');
-            }
-            if (!referralMatch) {
+            const isValidReferral = await lookupReferralCode(referralCode);
+            if (!isValidReferral) {
                 throw new Error('Invalid referral code. Please check the code and try again.');
             }
         }
@@ -255,23 +444,20 @@ export async function signUpCustomer(
 }
 
 export async function getUserByOpenId(openId: string): Promise<User | null> {
-    const { data, error } = await supabase.from('users').select('*').eq('openId', openId).maybeSingle();
-    if (error) {
-        console.error('[SupabaseAuth] getUserByOpenId failed:', error);
+    const profile = await queryProfileByAuthId(openId);
+    if (!profile) {
         return null;
     }
-    if (!data) {
-        return null;
-    }
+
     return {
-        id: data.id,
-        username: data.username ?? '',
-        email: data.email,
-        name: data.name,
-        phone: data.phone,
-        role: data.role as UserRole,
-        referralCode: data.referralCode ?? data.referral_code ?? undefined,
-        createdAt: data.createdAt,
+        id: profile.id ?? openId,
+        username: profile.username ?? '',
+        email: profile.email ?? '',
+        name: profile.name ?? 'Customer',
+        phone: profile.phone ?? '',
+        role: profile.role ?? 'customer',
+        referralCode: profile.referralCode,
+        createdAt: profile.createdAt ?? new Date().toISOString(),
     };
 }
 
@@ -332,7 +518,9 @@ export async function signOutUser(): Promise<void> {
 }
 
 export async function resetPassword(identifier: string): Promise<void> {
-    const email = identifier.includes('@') ? identifier.toLowerCase() : await lookupIdentifierEmail(identifier);
+    const email = identifier.includes('@')
+        ? identifier.toLowerCase()
+        : await lookupIdentifierEmail(identifier, { allowUnknownUsernameFallback: false });
     const redirectTo = typeof window !== 'undefined' ? `${window.location.origin}/login` : undefined;
     const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo,
@@ -340,7 +528,7 @@ export async function resetPassword(identifier: string): Promise<void> {
 
     if (error) {
         console.error('[SupabaseAuth] resetPassword error:', error);
-        throw new Error(error.message);
+        throw new Error('Unable to request a password reset. Please verify your username or phone number and try again.');
     }
 
     if (!data) {

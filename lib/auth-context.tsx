@@ -100,7 +100,7 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
 
 interface AuthContextType {
   state: AuthState;
-  signIn: (identifier: string, password: string) => Promise<void>;
+  signIn: (identifier: string, password: string) => Promise<{ token: string; user: User }>;
   signUp: (userData: Omit<User, 'id' | 'createdAt' | 'email'> & { password: string; email?: string }) => Promise<{ token: string | null; user: User }>;
   forgotPassword: (identifier: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
@@ -169,6 +169,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         AsyncStorage.setItem('user', JSON.stringify(result.user)),
       ]);
       dispatch({ type: 'SIGN_IN_SUCCESS', payload: { token: result.token, user: result.user } });
+      return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Sign in failed';
       dispatch({ type: 'SET_ERROR', payload: errorMessage });

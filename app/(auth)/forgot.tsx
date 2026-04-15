@@ -40,11 +40,12 @@ export default function ForgotPasswordScreen() {
             <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
                 <View className="flex-1 justify-center px-6 py-8">
                     <View className="mb-8 items-center">
-                        <Image
-                            source={appLogo}
-                            className="mb-4"
-                            style={{ resizeMode: 'contain', width: '34%', maxWidth: 140, aspectRatio: 1 }}
-                        />
+                        <View className="w-[140px] h-[140px] rounded-lg bg-surface p-4 items-center justify-center shadow-sm mb-4">
+                            <Image
+                                source={appLogo}
+                                style={{ width: 96, height: 96, resizeMode: 'cover', borderRadius: 12 }}
+                            />
+                        </View>
                         <Text className="text-4xl font-bold text-primary mb-2">Forgot Password</Text>
                         <Text className="text-base text-muted text-center">
                             Enter your username or phone to receive reset instructions.

@@ -14,12 +14,11 @@ const appLogo = require('@/applogo.png');
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { signIn, signInWithGoogle, state } = useAuth();
+  const { signIn, state } = useAuth();
 
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
 
   const handleLogin = async () => {
@@ -34,7 +33,10 @@ export default function LoginScreen() {
 
     setIsLoading(true);
     try {
-      await signIn(identifier.trim(), password);
+      const result = await signIn(identifier.trim(), password);
+      if (result?.user) {
+        router.replace('/');
+      }
     } catch (error: any) {
       const message = error?.message || state.error || 'Invalid credentials. Try your username and password.';
       Alert.alert('Login Failed', message);
@@ -43,28 +45,16 @@ export default function LoginScreen() {
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    setIsGoogleLoading(true);
-    try {
-      await signInWithGoogle();
-    } catch (error) {
-      Alert.alert('Google Sign-In Failed', state.error || 'Unable to sign in with Google. Please try again.');
-    } finally {
-      setIsGoogleLoading(false);
-    }
-  };
-
-
   return (
     <ScreenContainer className="flex-1 bg-background">
       <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingVertical: 16 }} showsVerticalScrollIndicator={false}>
         <View className="px-6">
           {/* Header */}
           <View className="mb-6 items-center">
-            <View className="mb-4 rounded-full bg-surface p-4 shadow-sm items-center justify-center">
+            <View className="mb-4 bg-surface p-4 shadow-sm items-center justify-center">
               <Image
                 source={appLogo}
-                style={{ width: 96, height: 96, resizeMode: 'contain' }}
+                style={{ width: 96, height: 96, resizeMode: 'cover', borderRadius: 48 }}
               />
             </View>
             <Text className="text-4xl font-bold text-primary mb-2">Chakna Store</Text>
@@ -122,25 +112,6 @@ export default function LoginScreen() {
           >
             <Text className="text-background font-bold text-base">
               {isLoading ? 'Signing in...' : 'Sign In'}
-            </Text>
-          </TouchableOpacity>
-
-          {/* Divider */}
-          <View className="flex-row items-center mb-4">
-            <View className="flex-1 h-px bg-border" />
-            <Text className="mx-3 text-muted text-sm">or</Text>
-            <View className="flex-1 h-px bg-border" />
-          </View>
-
-          {/* Social Login Buttons */}
-          <TouchableOpacity
-            className="w-full border border-border rounded-lg py-3 items-center mb-4"
-            onPress={handleGoogleSignIn}
-            disabled={isGoogleLoading}
-            style={{ opacity: isGoogleLoading ? 0.6 : 1 }}
-          >
-            <Text className="text-foreground font-semibold">
-              {isGoogleLoading ? 'Opening Google...' : 'Sign in with Google'}
             </Text>
           </TouchableOpacity>
 

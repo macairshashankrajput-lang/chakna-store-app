@@ -26,11 +26,12 @@ export default function SplashScreen() {
   return (
     <ScreenContainer className="flex-1 items-center justify-center bg-background">
       <View className="items-center gap-4">
-        <Image
-          source={appLogo}
-          className=""
-          style={{ resizeMode: 'contain', width: '32%', maxWidth: 160, aspectRatio: 1 }}
-        />
+        <View className="w-[140px] h-[140px] rounded-full bg-surface p-4 items-center justify-center shadow-sm">
+          <Image
+            source={appLogo}
+            style={{ width: 96, height: 96, resizeMode: 'cover', borderRadius: 48 }}
+          />
+        </View>
 
         <Text className="text-3xl font-bold text-foreground text-center">
           Chakna Store

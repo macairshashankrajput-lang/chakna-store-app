@@ -35,12 +35,23 @@ export default function RegisterScreen() {
       Alert.alert('Error', 'Please enter your name');
       return;
     }
+    const phone = formData.phone.trim();
+    const normalizedPhone = phone.replace(/\D/g, '');
+    if (!phone || normalizedPhone.length < 10) {
+      Alert.alert('Error', 'Please enter a valid phone number');
+      return;
+    }
     if (formData.password.length < 6) {
       Alert.alert('Error', 'Password must be at least 6 characters');
       return;
     }
     if (formData.password !== formData.confirmPassword) {
       Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+    const email = formData.email.trim();
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      Alert.alert('Error', 'Please enter a valid email address');
       return;
     }
 
@@ -55,14 +66,16 @@ export default function RegisterScreen() {
         referralCode: formData.referralCode || undefined,
         password: formData.password,
       });
-      if (!result.token) {
-        Alert.alert(
-          'Account Created',
-          'Your account has been created successfully. You can now sign in with your username and password.',
-        );
-        router.push('./login');
+      if (result.token) {
+        router.replace('/');
         return;
       }
+
+      Alert.alert(
+        'Account Created',
+        'Your account has been created successfully. You can now sign in with your username and password.',
+      );
+      router.push('./login');
     } catch (error) {
       Alert.alert('Registration Failed', state.error || 'Please try again');
     } finally {
