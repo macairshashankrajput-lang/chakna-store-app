@@ -101,31 +101,29 @@ export const getLoginUrl = () => {
  *
  * @returns Always null, the callback is handled via deep link.
  */
-export async function startOAuthLogin(): Promise<string | null> {
+export async function startOAuthLogin(): Promise<boolean> {
   const loginUrl = getLoginUrl();
 
   if (ReactNative.Platform.OS === "web") {
     // On web, just redirect
     if (typeof window !== "undefined") {
       window.location.href = loginUrl;
+      return true;
     }
-    return null;
+    return false;
   }
 
   const supported = await Linking.canOpenURL(loginUrl);
   if (!supported) {
     console.warn("[OAuth] Cannot open login URL: URL scheme not supported");
-    // 可考虑抛出错误或返回错误状态，让调用方处理
-    return null;
+    return false;
   }
 
   try {
     await Linking.openURL(loginUrl);
+    return true;
   } catch (error) {
     console.error("[OAuth] Failed to open login URL:", error);
-    // 可考虑抛出错误让调用方处理
+    return false;
   }
-
-  // The OAuth callback will reopen the app via deep link.
-  return null;
 }

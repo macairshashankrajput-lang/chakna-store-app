@@ -1,6 +1,7 @@
 CREATE TABLE `users` (
 	`id` int AUTO_INCREMENT NOT NULL,
 	`openId` varchar(64) NOT NULL,
+	`username` varchar(64) NOT NULL,
 	`name` text,
 	`email` varchar(320),
 	`loginMethod` varchar(64),

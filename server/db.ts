@@ -18,7 +18,7 @@ export async function getDb() {
   return _db;
 }
 
-export async function upsertUser(user: InsertUser): Promise<void> {
+export async function upsertUser(user: Partial<InsertUser> & { openId: string }): Promise<void> {
   if (!user.openId) {
     throw new Error("User openId is required for upsert");
   }
@@ -30,8 +30,9 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   }
 
   try {
-    const values: InsertUser = {
+    const values: Partial<InsertUser> & { openId: string; username: string } = {
       openId: user.openId,
+      username: user.username ?? user.openId,
     };
     const updateSet: Record<string, unknown> = {};
 

@@ -4,6 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import * as supabaseAuth from '../supabase-auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Mock AsyncStorage
@@ -22,17 +23,17 @@ describe('Authentication Context', () => {
 
   describe('Login Credentials', () => {
     it('should accept admin credentials', () => {
-      const adminEmail = 'xyz@gmail.com';
+      const adminEmail = 'info.shashankrajput@gmail.com';
       const adminPassword = 'asdfghjkl';
-      
-      expect(adminEmail).toBe('xyz@gmail.com');
+
+      expect(adminEmail).toBe('info.shashankrajput@gmail.com');
       expect(adminPassword).toBe('asdfghjkl');
     });
 
     it('should accept customer test credentials', () => {
       const customerEmail = 'customer@test.com';
       const customerPassword = 'password123';
-      
+
       expect(customerEmail).toBe('customer@test.com');
       expect(customerPassword).toBe('password123');
     });
@@ -40,7 +41,7 @@ describe('Authentication Context', () => {
     it('should accept vendor test credentials', () => {
       const vendorEmail = 'vendor@test.com';
       const vendorPassword = 'password123';
-      
+
       expect(vendorEmail).toBe('vendor@test.com');
       expect(vendorPassword).toBe('password123');
     });
@@ -50,7 +51,7 @@ describe('Authentication Context', () => {
     it('should only allow customer registration', () => {
       const allowedRole = 'customer';
       const notAllowedRoles = ['vendor', 'admin'];
-      
+
       expect(allowedRole).toBe('customer');
       notAllowedRoles.forEach(role => {
         expect(role).not.toBe('customer');
@@ -59,7 +60,7 @@ describe('Authentication Context', () => {
 
     it('should require name, email, phone, and password for registration', () => {
       const requiredFields = ['name', 'email', 'phone', 'password'];
-      
+
       requiredFields.forEach(field => {
         expect(requiredFields).toContain(field);
       });
@@ -68,7 +69,7 @@ describe('Authentication Context', () => {
     it('should validate password length minimum 6 characters', () => {
       const validPassword = 'password123';
       const invalidPassword = '12345';
-      
+
       expect(validPassword.length).toBeGreaterThanOrEqual(6);
       expect(invalidPassword.length).toBeLessThan(6);
     });
@@ -76,7 +77,7 @@ describe('Authentication Context', () => {
     it('should validate email format', () => {
       const validEmail = 'user@example.com';
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      
+
       expect(emailRegex.test(validEmail)).toBe(true);
     });
   });
@@ -85,20 +86,20 @@ describe('Authentication Context', () => {
     it('should have default admin credentials', () => {
       const defaultAdmin = {
         name: 'Shashank Rajput',
-        email: 'xyz@gmail.com',
+        email: 'info.shashankrajput@gmail.com',
         phone: '6307500844',
         password: 'asdfghjkl',
         role: 'admin',
       };
-      
+
       expect(defaultAdmin.role).toBe('admin');
-      expect(defaultAdmin.email).toBe('xyz@gmail.com');
+      expect(defaultAdmin.email).toBe('info.shashankrajput@gmail.com');
     });
 
     it('should not allow admin creation through public registration', () => {
       const registrationRole = 'customer';
       const adminRole = 'admin';
-      
+
       expect(registrationRole).not.toBe(adminRole);
     });
   });
@@ -106,9 +107,9 @@ describe('Authentication Context', () => {
   describe('Token Management', () => {
     it('should store token in AsyncStorage on login', async () => {
       const mockToken = 'token_123456';
-      
+
       await AsyncStorage.setItem('userToken', mockToken);
-      
+
       expect(AsyncStorage.setItem).toHaveBeenCalledWith('userToken', mockToken);
     });
 
@@ -121,16 +122,16 @@ describe('Authentication Context', () => {
         role: 'customer',
         createdAt: new Date().toISOString(),
       };
-      
+
       await AsyncStorage.setItem('user', JSON.stringify(mockUser));
-      
+
       expect(AsyncStorage.setItem).toHaveBeenCalledWith('user', JSON.stringify(mockUser));
     });
 
     it('should remove token on logout', async () => {
       await AsyncStorage.removeItem('userToken');
       await AsyncStorage.removeItem('user');
-      
+
       expect(AsyncStorage.removeItem).toHaveBeenCalledWith('userToken');
       expect(AsyncStorage.removeItem).toHaveBeenCalledWith('user');
     });
@@ -140,7 +141,7 @@ describe('Authentication Context', () => {
     it('should route customer to customer dashboard', () => {
       const userRole = 'customer';
       const expectedRoute = '/(customer)';
-      
+
       expect(userRole).toBe('customer');
       expect(expectedRoute).toContain('customer');
     });
@@ -148,7 +149,7 @@ describe('Authentication Context', () => {
     it('should route vendor to vendor dashboard', () => {
       const userRole = 'vendor';
       const expectedRoute = '/(vendor)';
-      
+
       expect(userRole).toBe('vendor');
       expect(expectedRoute).toContain('vendor');
     });
@@ -156,7 +157,7 @@ describe('Authentication Context', () => {
     it('should route admin to admin dashboard', () => {
       const userRole = 'admin';
       const expectedRoute = '/(admin)';
-      
+
       expect(userRole).toBe('admin');
       expect(expectedRoute).toContain('admin');
     });
@@ -167,28 +168,28 @@ describe('Authentication Context', () => {
       const invalidEmail = 'wrong@example.com';
       const invalidPassword = 'wrongpassword';
       const validCredentials = [
-        { email: 'xyz@gmail.com', password: 'asdfghjkl' },
+        { email: 'info.shashankrajput@gmail.com', password: 'asdfghjkl' },
         { email: 'customer@test.com', password: 'password123' },
       ];
-      
+
       const isValid = validCredentials.some(
         cred => cred.email === invalidEmail && cred.password === invalidPassword
       );
-      
+
       expect(isValid).toBe(false);
     });
 
     it('should reject duplicate email registration', () => {
-      const existingEmail = 'xyz@gmail.com';
-      const newEmail = 'xyz@gmail.com';
-      
+      const existingEmail = 'info.shashankrajput@gmail.com';
+      const newEmail = 'info.shashankrajput@gmail.com';
+
       expect(existingEmail).toBe(newEmail);
     });
 
     it('should reject mismatched passwords', () => {
       const password1 = 'password123';
       const password2 = 'password456';
-      
+
       expect(password1).not.toBe(password2);
     });
   });

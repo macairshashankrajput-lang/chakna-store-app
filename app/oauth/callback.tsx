@@ -6,9 +6,11 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuth } from '@/lib/auth-context';
 
 export default function OAuthCallback() {
   const router = useRouter();
+  const { restoreToken } = useAuth();
   const params = useLocalSearchParams<{
     code?: string;
     state?: string;
@@ -61,6 +63,7 @@ export default function OAuthCallback() {
 
           setStatus("success");
           console.log("[OAuth] Web authentication successful, redirecting to home...");
+          await restoreToken();
           setTimeout(() => {
             router.replace("/(customer)");
           }, 1000);
@@ -211,6 +214,7 @@ export default function OAuthCallback() {
 
           setStatus("success");
           console.log("[OAuth] Authentication successful, redirecting to home...");
+          await restoreToken();
 
           // Redirect to home after a short delay
           setTimeout(() => {

@@ -32,6 +32,12 @@ export default function AuthLayout() {
         }}
       />
       <Stack.Screen
+        name="forgot"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
         name="onboarding"
         options={{
           headerShown: false,

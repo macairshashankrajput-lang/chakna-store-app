@@ -15,6 +15,7 @@ export default function RegisterScreen() {
   const { signUp, state } = useAuth();
 
   const [formData, setFormData] = useState({
+    username: '',
     name: '',
     email: '',
     phone: '',
@@ -26,16 +27,12 @@ export default function RegisterScreen() {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleRegister = async () => {
+    if (!formData.username.trim()) {
+      Alert.alert('Error', 'Please enter a username');
+      return;
+    }
     if (!formData.name.trim()) {
       Alert.alert('Error', 'Please enter your name');
-      return;
-    }
-    if (!formData.email.includes('@')) {
-      Alert.alert('Error', 'Please enter a valid email');
-      return;
-    }
-    if (!formData.phone || formData.phone.length < 10) {
-      Alert.alert('Error', 'Please enter a valid phone number');
       return;
     }
     if (formData.password.length < 6) {
@@ -49,15 +46,23 @@ export default function RegisterScreen() {
 
     setIsLoading(true);
     try {
-      await signUp({
+      const result = await signUp({
+        username: formData.username.trim(),
         name: formData.name,
-        email: formData.email,
+        email: formData.email.trim() ? formData.email.trim() : undefined,
         phone: formData.phone,
         role: 'customer',
         referralCode: formData.referralCode || undefined,
         password: formData.password,
       });
-      // Navigation will happen automatically via auth context
+      if (!result.token) {
+        Alert.alert(
+          'Account Created',
+          'Your account has been created successfully. You can now sign in with your username and password.',
+        );
+        router.push('./login');
+        return;
+      }
     } catch (error) {
       Alert.alert('Registration Failed', state.error || 'Please try again');
     } finally {
@@ -71,12 +76,26 @@ export default function RegisterScreen() {
 
   return (
     <ScreenContainer className="flex-1 bg-background">
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
-        <View className="px-6 py-8">
+      <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingVertical: 16 }} showsVerticalScrollIndicator={false}>
+        <View className="px-6 py-4">
           {/* Header */}
-          <View className="mb-6">
+          <View className="mb-5">
             <Text className="text-4xl font-bold text-foreground mb-2">Create Account</Text>
             <Text className="text-base text-muted">Join Chakna Store today</Text>
+          </View>
+
+          {/* Username */}
+          <View className="mb-4">
+            <Text className="text-sm font-semibold text-foreground mb-2">Username</Text>
+            <TextInput
+              className="w-full bg-surface border border-border rounded-lg px-4 py-3 text-foreground"
+              placeholder="your username"
+              placeholderTextColor="#687076"
+              value={formData.username}
+              onChangeText={value => handleInputChange('username', value)}
+              editable={!isLoading}
+              autoCapitalize="none"
+            />
           </View>
 
           {/* Full Name */}
@@ -167,6 +186,9 @@ export default function RegisterScreen() {
               onChangeText={value => handleInputChange('referralCode', value)}
               editable={!isLoading}
             />
+            <Text className="text-xs text-muted mt-2">
+              Optional referral codes give your friend 5% off when they sign up.
+            </Text>
           </View>
 
           {/* Error Message */}

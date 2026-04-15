@@ -1,72 +1,88 @@
 /**
  * Login Screen
- * User authentication with email and password
+ * User authentication with username and password
  * Demo credentials available for testing
  */
 
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/screen-container';
 import { useAuth } from '@/lib/auth-context';
 
+const appLogo = require('@/applogo.png');
+
 export default function LoginScreen() {
   const router = useRouter();
-  const { signIn, state } = useAuth();
+  const { signIn, signInWithGoogle, state } = useAuth();
 
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
 
   const handleLogin = async () => {
-    if (!email.trim()) {
-      Alert.alert('Error', 'Please enter your email');
+    if (!identifier.trim()) {
+      Alert.alert('Error', 'Please enter your username or phone number');
       return;
     }
     if (!password) {
       Alert.alert('Error', 'Please enter your password');
       return;
     }
-    if (!email.includes('@')) {
-      Alert.alert('Error', 'Please enter a valid email');
-      return;
-    }
 
     setIsLoading(true);
     try {
-      await signIn(email.toLowerCase().trim(), password);
-    } catch (error) {
-      Alert.alert('Login Failed', state.error || 'Invalid credentials. Try demo credentials below.');
+      await signIn(identifier.trim(), password);
+    } catch (error: any) {
+      const message = error?.message || state.error || 'Invalid credentials. Try your username and password.';
+      Alert.alert('Login Failed', message);
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      Alert.alert('Google Sign-In Failed', state.error || 'Unable to sign in with Google. Please try again.');
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
 
 
   return (
     <ScreenContainer className="flex-1 bg-background">
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
-        <View className="flex-1 justify-center px-6 py-8">
+      <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingVertical: 16 }} showsVerticalScrollIndicator={false}>
+        <View className="px-6">
           {/* Header */}
-          <View className="mb-8">
+          <View className="mb-6 items-center">
+            <View className="mb-4 rounded-full bg-surface p-4 shadow-sm items-center justify-center">
+              <Image
+                source={appLogo}
+                style={{ width: 96, height: 96, resizeMode: 'contain' }}
+              />
+            </View>
             <Text className="text-4xl font-bold text-primary mb-2">Chakna Store</Text>
             <Text className="text-lg text-foreground mb-1">Welcome Back</Text>
             <Text className="text-base text-muted">Sign in to your account</Text>
           </View>
 
-          {/* Email Input */}
+          {/* Username / Phone Input */}
           <View className="mb-4">
-            <Text className="text-sm font-semibold text-foreground mb-2">Email</Text>
+            <Text className="text-sm font-semibold text-foreground mb-2">Username or Phone</Text>
             <TextInput
               className="w-full bg-surface border border-border rounded-lg px-4 py-3 text-foreground"
-              placeholder="you@example.com"
+              placeholder="username or +91 98765 43210"
               placeholderTextColor="#687076"
-              value={email}
-              onChangeText={setEmail}
+              value={identifier}
+              onChangeText={setIdentifier}
               editable={!isLoading}
-              keyboardType="email-address"
+              keyboardType="default"
               autoCapitalize="none"
             />
           </View>
@@ -75,7 +91,7 @@ export default function LoginScreen() {
           <View className="mb-6">
             <View className="flex-row justify-between items-center mb-2">
               <Text className="text-sm font-semibold text-foreground">Password</Text>
-              <TouchableOpacity>
+              <TouchableOpacity onPress={() => router.push('./forgot')}>
                 <Text className="text-sm text-primary font-semibold">Forgot?</Text>
               </TouchableOpacity>
             </View>
@@ -117,8 +133,15 @@ export default function LoginScreen() {
           </View>
 
           {/* Social Login Buttons */}
-          <TouchableOpacity className="w-full border border-border rounded-lg py-3 items-center mb-4">
-            <Text className="text-foreground font-semibold">Sign in with Google</Text>
+          <TouchableOpacity
+            className="w-full border border-border rounded-lg py-3 items-center mb-4"
+            onPress={handleGoogleSignIn}
+            disabled={isGoogleLoading}
+            style={{ opacity: isGoogleLoading ? 0.6 : 1 }}
+          >
+            <Text className="text-foreground font-semibold">
+              {isGoogleLoading ? 'Opening Google...' : 'Sign in with Google'}
+            </Text>
           </TouchableOpacity>
 
           {/* Sign Up Link */}
@@ -129,10 +152,13 @@ export default function LoginScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Admin Support Info */}
+
+          {/* Demo Credentials & Support */}
           <View className="mt-8 pt-6 border-t border-border">
-            <Text className="text-xs text-muted text-center">For customer signup or admin support, please contact us.</Text>
+            <Text className="text-xs text-muted text-center mb-2">Demo: adminchaknaco / asdfghjkl</Text>
+            <Text className="text-xs text-muted text-center">For customer signup or admin support, contact us.</Text>
           </View>
+
         </View>
       </ScrollView>
     </ScreenContainer>

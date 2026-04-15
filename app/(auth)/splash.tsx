@@ -4,14 +4,14 @@
  */
 
 import { useEffect } from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, Image } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAuth } from '@/lib/auth-context';
 import { ScreenContainer } from '@/components/screen-container';
+
+const appLogo = require('@/applogo.png');
 
 export default function SplashScreen() {
   const router = useRouter();
-  const { state } = useAuth();
 
   useEffect(() => {
     // Simulate loading and then navigate to login
@@ -26,12 +26,12 @@ export default function SplashScreen() {
   return (
     <ScreenContainer className="flex-1 items-center justify-center bg-background">
       <View className="items-center gap-4">
-        {/* App Logo */}
-        <View className="w-24 h-24 rounded-3xl bg-primary items-center justify-center shadow-lg">
-          <Text className="text-6xl">🍱</Text>
-        </View>
+        <Image
+          source={appLogo}
+          className=""
+          style={{ resizeMode: 'contain', width: '32%', maxWidth: 160, aspectRatio: 1 }}
+        />
 
-        {/* App Name */}
         <Text className="text-3xl font-bold text-foreground text-center">
           Chakna Store
         </Text>

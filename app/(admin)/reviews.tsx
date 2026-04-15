@@ -1,175 +1,158 @@
 /**
- * Admin Reviews Management Screen
- * View and manage customer reviews
+ * Admin Reviews Screen - Refactored with DataTable
  */
 
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import { ScreenContainer } from '@/components/screen-container';
-import { useState } from 'react';
+import { AdminDataTable } from '@/components/ui/admin-data-table';
+import { AdminProvider, useAdminContext } from '@/lib/admin-context';
+import { reviewService, type Review } from '@/lib/supabase-service';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 
-interface Review {
-  id: string;
-  customerName: string;
-  rating: number;
-  comment: string;
-  itemName: string;
-  date: string;
-  status: 'pending' | 'approved' | 'rejected';
-}
+function ReviewsContent() {
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { bulkActions, selectedItems, setPendingReviewsCount } = useAdminContext();
 
-const mockReviews: Review[] = [
-  {
-    id: '1',
-    customerName: 'John Doe',
-    rating: 5,
-    comment: 'Excellent quality and taste!',
-    itemName: 'Masala Peanuts',
-    date: '2026-04-08',
-    status: 'pending',
-  },
-  {
-    id: '2',
-    customerName: 'Jane Smith',
-    rating: 4,
-    comment: 'Good but a bit pricey',
-    itemName: 'Chivda Mix',
-    date: '2026-04-07',
-    status: 'approved',
-  },
-];
+  useEffect(() => {
+    // Real-time listener for all reviews
+    const unsubscribe = reviewService.subscribeToReviews((fetchedReviews) => {
+      setReviews(fetchedReviews);
+      const count = fetchedReviews.filter(r => r.status === 'pending').length;
+      setPendingReviewsCount(count);
+      setLoading(false);
+    });
 
-export default function AdminReviewsScreen() {
-  const [reviews, setReviews] = useState(mockReviews);
-  const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+    return () => unsubscribe();
+  }, []);
 
-  const filteredReviews = reviews.filter(review =>
-    filterStatus === 'all' ? true : review.status === filterStatus
-  );
-
-  const handleApprove = (id: string) => {
-    setReviews(reviews.map(r => r.id === id ? { ...r, status: 'approved' } : r));
+  const handleApprove = async (reviewId: string) => {
+    try {
+      await reviewService.updateReviewStatus(reviewId, 'approved');
+      Alert.alert('Success', 'Review approved!');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to approve review');
+    }
   };
 
-  const handleReject = (id: string) => {
-    setReviews(reviews.map(r => r.id === id ? { ...r, status: 'rejected' } : r));
+  const handleReject = async (reviewId: string) => {
+    Alert.alert(
+      'Reject Review',
+      'Are you sure you want to reject this review?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reject',
+          style: 'destructive',
+          onPress: () => {
+            reviewService.updateReviewStatus(reviewId, 'rejected').catch(() => Alert.alert('Error', 'Failed to reject'));
+          }
+        }
+      ]
+    );
   };
 
-  const renderStars = (rating: number) => {
-    return '★'.repeat(rating) + '☆'.repeat(5 - rating);
+  const renderReview = ({ item }: { item: Review }) => {
+    const date = item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A';
+    return (
+      <View className="p-4 bg-surface rounded-lg border border-border mb-2">
+        <View className="flex-row items-center justify-between mb-2">
+          <Text className="font-bold text-foreground">{item.customerName}</Text>
+          <Text className="text-yellow-400 font-bold">{'★'.repeat(item.rating)}</Text>
+        </View>
+        <Text className="text-sm text-muted mb-2">{item.itemName} • {date}</Text>
+        <Text className="text-foreground mb-3">{item.comment}</Text>
+        <View className="flex-row gap-2 mb-3">
+          <Text className={`px-2 py-1 rounded text-xs font-semibold capitalize ${item.status === 'approved' ? 'bg-success/20 text-success' :
+            item.status === 'rejected' ? 'bg-error/20 text-error' :
+              'bg-warning/20 text-warning'
+            }`}>
+            {item.status}
+          </Text>
+        </View>
+        {/* Action Buttons */}
+        {item.status === 'pending' && (
+          <View className="flex-row gap-2">
+            <TouchableOpacity
+              className="flex-1 bg-success/20 border border-success/30 rounded-lg p-2 items-center"
+              onPress={() => handleApprove(item.id)}
+            >
+              <IconSymbol name="checkmark.circle.fill" color="hsl(var(--success))" size={20} />
+              <Text className="text-success text-xs font-semibold mt-1">Approve</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              className="flex-1 bg-error/20 border border-error/30 rounded-lg p-2 items-center"
+              onPress={() => handleReject(item.id)}
+            >
+              <IconSymbol name="xmark.circle.fill" color="hsl(var(--error))" size={20} />
+              <Text className="text-error text-xs font-semibold mt-1">Reject</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  const handleRefresh = async () => {
+    setLoading(true);
+    try {
+      const freshReviews = await reviewService.getAllReviews();
+      setReviews(freshReviews);
+      const count = freshReviews.filter(r => r.status === 'pending').length;
+      setPendingReviewsCount(count);
+    } catch (error) {
+      console.error('Refresh failed:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Bulk approve selected pending reviews
+  const handleBulkApprove = async () => {
+    const pendingSelected = selectedItems.filter(id =>
+      reviews.find(r => r.id === id && r.status === 'pending')
+    );
+    if (pendingSelected.length === 0) {
+      Alert.alert('No Action', 'Select pending reviews to approve.');
+      return;
+    }
+    try {
+      await Promise.all(
+        pendingSelected.map(id => reviewService.updateReviewStatus(id, 'approved'))
+      );
+      Alert.alert('Success', `${pendingSelected.length} reviews approved!`);
+      bulkActions.delete(); // Clear selection
+    } catch (error) {
+      Alert.alert('Error', 'Bulk approve failed');
+    }
   };
 
   return (
+    <AdminDataTable
+      data={reviews}
+      keyExtractor={(item) => item.id}
+      renderItem={renderReview as any}
+      filterOptions={[
+        { label: 'All', value: 'all' },
+        { label: 'Pending', value: 'pending' },
+        { label: 'Approved', value: 'approved' },
+        { label: 'Rejected', value: 'rejected' },
+      ]}
+      searchKeys={['customerName', 'itemName', 'comment'] as any}
+      loading={loading}
+      onRefresh={handleRefresh}
+      emptyTitle="No Reviews"
+      emptyDescription="No customer reviews to moderate. Reviews will appear here when customers submit them."
+    />
+  );
+}
+
+export default function AdminReviewsScreen() {
+  return (
     <ScreenContainer className="flex-1 bg-background">
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
-        <View className="px-4 py-6">
-          {/* Header */}
-          <View className="mb-6">
-            <Text className="text-3xl font-bold text-foreground mb-2">Reviews Management</Text>
-            <Text className="text-muted text-sm">Moderate and manage customer reviews</Text>
-          </View>
-
-          {/* Filter Buttons */}
-          <View className="flex-row gap-2 mb-6">
-            {(['all', 'pending', 'approved', 'rejected'] as const).map(status => (
-              <TouchableOpacity
-                key={status}
-                className={`px-4 py-2 rounded-full ${
-                  filterStatus === status
-                    ? 'bg-primary'
-                    : 'bg-surface border border-border'
-                }`}
-                onPress={() => setFilterStatus(status)}
-              >
-                <Text
-                  className={`text-sm font-semibold capitalize ${
-                    filterStatus === status ? 'text-white' : 'text-foreground'
-                  }`}
-                >
-                  {status}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Reviews List */}
-          <View>
-            {filteredReviews.length > 0 ? (
-              filteredReviews.map(review => (
-                <View
-                  key={review.id}
-                  className="bg-surface rounded-lg p-4 mb-3 border border-border"
-                >
-                  {/* Review Header */}
-                  <View className="flex-row items-start justify-between mb-2">
-                    <View className="flex-1">
-                      <Text className="text-base font-bold text-foreground">
-                        {review.customerName}
-                      </Text>
-                      <Text className="text-sm text-muted">{review.itemName}</Text>
-                    </View>
-                    <View
-                      className={`px-2 py-1 rounded ${
-                        review.status === 'approved'
-                          ? 'bg-success/20'
-                          : review.status === 'rejected'
-                          ? 'bg-error/20'
-                          : 'bg-warning/20'
-                      }`}
-                    >
-                      <Text
-                        className={`text-xs font-semibold capitalize ${
-                          review.status === 'approved'
-                            ? 'text-success'
-                            : review.status === 'rejected'
-                            ? 'text-error'
-                            : 'text-warning'
-                        }`}
-                      >
-                        {review.status}
-                      </Text>
-                    </View>
-                  </View>
-
-                  {/* Rating */}
-                  <Text className="text-yellow-500 font-bold mb-2">
-                    {renderStars(review.rating)}
-                  </Text>
-
-                  {/* Comment */}
-                  <Text className="text-sm text-foreground mb-3 leading-relaxed">
-                    {review.comment}
-                  </Text>
-
-                  {/* Date */}
-                  <Text className="text-xs text-muted mb-3">{review.date}</Text>
-
-                  {/* Action Buttons */}
-                  {review.status === 'pending' && (
-                    <View className="flex-row gap-2">
-                      <TouchableOpacity
-                        className="flex-1 bg-success/20 rounded-lg py-2 items-center"
-                        onPress={() => handleApprove(review.id)}
-                      >
-                        <Text className="text-success font-bold text-sm">Approve</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        className="flex-1 bg-error/20 rounded-lg py-2 items-center"
-                        onPress={() => handleReject(review.id)}
-                      >
-                        <Text className="text-error font-bold text-sm">Reject</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </View>
-              ))
-            ) : (
-              <View className="items-center py-8">
-                <Text className="text-muted text-base">No reviews found</Text>
-              </View>
-            )}
-          </View>
-        </View>
-      </ScrollView>
+      <ReviewsContent />
     </ScreenContainer>
   );
 }
+

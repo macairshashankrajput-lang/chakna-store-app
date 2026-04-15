@@ -5,7 +5,8 @@
 
 export const DEFAULT_ADMIN_CREDENTIALS = {
   name: 'Shashank Rajput',
-  email: 'xyz@gmail.com',
+  username: 'adminchaknaco',
+  email: 'info.shashankrajput@gmail.com',
   phone: '6307500844',
   password: 'asdfghjkl',
   role: 'admin' as const,
@@ -14,7 +15,8 @@ export const DEFAULT_ADMIN_CREDENTIALS = {
 export const DEFAULT_TEST_USERS = [
   {
     name: 'Shashank Rajput',
-    email: 'xyz@gmail.com',
+    username: 'adminchaknaco',
+    email: 'info.shashankrajput@gmail.com',
     phone: '6307500844',
     password: 'asdfghjkl',
     role: 'admin' as const,
