@@ -90,9 +90,9 @@ export default function VendorDashboardScreen() {
             <Text className="text-lg font-bold text-foreground mb-3">Quick Actions</Text>
             <View className="gap-2">
               <QuickActionButton icon="list" label="View Orders" onPress={() => router.push('./orders')} />
-              <QuickActionButton icon="calendar" label="Tiffin Schedule" onPress={() => {}} />
-              <QuickActionButton icon="chart" label="Analytics" onPress={() => {}} />
-              <QuickActionButton icon="settings" label="Settings" onPress={() => {}} />
+              <QuickActionButton icon="calendar" label="Tiffin Schedule" onPress={() => router.push('./tiffin')} />
+              <QuickActionButton icon="chart" label="Analytics" onPress={() => router.push('./analytics')} />
+              <QuickActionButton icon="settings" label="Settings" onPress={() => router.push('./profile')} />
             </View>
           </View>
 

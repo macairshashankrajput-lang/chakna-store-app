@@ -80,7 +80,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
                 const orders = ordersResult.status === 'fulfilled' ? ordersResult.value : [];
                 const totalOrders = orders.length;
                 const revenue = orders.reduce(
-                    (sum, order) => sum + (order.totalAmount ?? (order as any).total_price ?? 0),
+                    (sum, order) => sum + ((order as any).totalPrice ?? (order as any).total_price ?? 0),
                     0,
                 );
                 const activeUsers = customerCountResult.status === 'fulfilled' ? customerCountResult.value : 0;

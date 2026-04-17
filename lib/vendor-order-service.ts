@@ -17,9 +17,10 @@ export const vendorOrderService = {
         order_items (
           menu_id,
           quantity,
-          price
+          price,
+          menu:menu_id (name)
         ),
-        users!user_id (name, phone)
+        users!user_id (name, phone, delivery_location)
       `)
             .eq('vendor_id', vendorId)
             .order('created_at', { ascending: false });

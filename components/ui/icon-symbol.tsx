@@ -16,6 +16,7 @@ const MAPPING = {
   "house.fill": "home",
   "paperplane.fill": "send",
   "chevron.left.forwardslash.chevron.right": "code",
+  "chevron.left": "chevron-left",
   "chevron.right": "chevron-right",
   "person.circle.fill": "person",
   "person.fill": "person",
@@ -28,6 +29,7 @@ const MAPPING = {
   "star.fill": "star",
   "heart.fill": "favorite",
   "calendar": "calendar_today",
+  "message.fill": "chat",
 } as const;
 
 /**

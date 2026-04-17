@@ -94,7 +94,7 @@ export default function ChaknaStoreListingScreen() {
                   ? 'bg-primary border-primary'
                   : 'bg-surface border-border'
                   }`}
-                onPress={() => setSelectedCategory(category)}
+                onPress={() => setSelectedCategory(category || 'All')}
               >
                 <Text className={`font-semibold text-sm ${selectedCategory === category ? 'text-background' : 'text-foreground'}`}>
                   {category}

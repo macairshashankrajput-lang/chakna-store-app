@@ -122,7 +122,6 @@ class SDKServer {
     return {
       ...(data as any),
       platform: loginMethod,
-      loginMethod,
     } as GetUserInfoResponse;
   }
 
@@ -227,7 +226,6 @@ class SDKServer {
     return {
       ...(data as any),
       platform: loginMethod,
-      loginMethod,
     } as GetUserInfoWithJwtResponse;
   }
 
@@ -258,8 +256,7 @@ class SDKServer {
         await db.upsertUser({
           openId: userInfo.openId,
           name: userInfo.name || null,
-          email: userInfo.email ?? null,
-          loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
+          email: userInfo.email ?? `${userInfo.openId}@placeholder.com`,
           lastSignedIn: signedInAt,
         });
         user = await db.getUserByOpenId(userInfo.openId);
@@ -273,10 +270,12 @@ class SDKServer {
       throw ForbiddenError("User not found");
     }
 
-    await db.upsertUser({
-      openId: user.openId,
-      lastSignedIn: signedInAt,
-    });
+    if (user.openId) {
+      await db.upsertUser({
+        openId: user.openId,
+        lastSignedIn: signedInAt,
+      });
+    }
 
     return user;
   }

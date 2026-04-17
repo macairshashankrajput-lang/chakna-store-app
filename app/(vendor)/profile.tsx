@@ -4,12 +4,17 @@
  */
 
 import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { useState } from 'react';
+import { useRouter } from 'expo-router';
 import { useAuth } from '@/lib/auth-context';
 import { ScreenContainer } from '@/components/screen-container';
 
 export default function VendorProfileScreen() {
+  const router = useRouter();
   const { state, signOut } = useAuth();
   const user = state.user;
+
+  const [isOnline, setIsOnline] = useState(true);
 
   const handleLogout = async () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
@@ -24,6 +29,12 @@ export default function VendorProfileScreen() {
     ]);
   };
 
+  const toggleShopStatus = () => {
+    setIsOnline(!isOnline);
+    Alert.alert('Shop Status', `Your shop is now ${!isOnline ? 'Online' : 'Offline'}`);
+    // In a real app, update the 'users' table or a 'vendors' table status field
+  };
+
   return (
     <ScreenContainer className="flex-1 bg-background">
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
@@ -34,27 +45,35 @@ export default function VendorProfileScreen() {
               <Text className="text-4xl">👨‍💼</Text>
             </View>
             <Text className="text-2xl font-bold text-foreground mb-1">{user?.name || 'Vendor'}</Text>
-            <Text className="text-muted text-sm">{user?.email}</Text>
-            <Text className="text-muted text-sm">{user?.phone}</Text>
+            <Text className="text-muted text-sm mb-4">{user?.businessName || 'Chakna Shop'}</Text>
+            
+            <TouchableOpacity 
+              onPress={toggleShopStatus}
+              className={`flex-row items-center gap-2 px-6 py-2 rounded-full border ${isOnline ? 'bg-success/10 border-success' : 'bg-muted/10 border-muted'}`}
+            >
+              <View className={`w-3 h-3 rounded-full ${isOnline ? 'bg-success' : 'bg-muted'}`} />
+              <Text className={`font-bold ${isOnline ? 'text-success' : 'text-muted'}`}>
+                {isOnline ? 'OPEN' : 'CLOSED'}
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* Menu Items */}
           <View className="gap-2 mb-6">
-            <ProfileMenuItem icon="📊" label="Analytics" />
-            <ProfileMenuItem icon="💰" label="Earnings" />
-            <ProfileMenuItem icon="🍽️" label="Menu Management" />
-            <ProfileMenuItem icon="⭐" label="Ratings & Reviews" />
-            <ProfileMenuItem icon="🔔" label="Notifications" />
-            <ProfileMenuItem icon="⚙️" label="Settings" />
-            <ProfileMenuItem icon="❓" label="Help & Support" />
+            <ProfileMenuItem icon="📊" label="Analytics" onPress={() => router.push('./analytics')} />
+            <ProfileMenuItem icon="📋" label="Active Orders" onPress={() => router.push('./orders')} />
+            <ProfileMenuItem icon="🍽️" label="Menu Management" onPress={() => router.push('./menu')} />
+            <ProfileMenuItem icon="⭐" label="Ratings & Reviews" onPress={() => Alert.alert('Reviews', 'Customer reviews for your shop.')} />
+            <ProfileMenuItem icon="🔔" label="Notifications" onPress={() => Alert.alert('Notifications', 'Notification settings.')} />
+            <ProfileMenuItem icon="⚙️" label="Settings" onPress={() => Alert.alert('Settings', 'Vendor settings.')} />
           </View>
 
           {/* Logout Button */}
           <TouchableOpacity
-            className="w-full bg-error rounded-lg py-4 items-center"
+            className="w-full bg-error/10 border border-error rounded-xl py-4 items-center"
             onPress={handleLogout}
           >
-            <Text className="text-background font-bold text-base">Logout</Text>
+            <Text className="text-error font-bold text-base">Logout</Text>
           </TouchableOpacity>
 
           {/* App Version */}
@@ -70,11 +89,15 @@ export default function VendorProfileScreen() {
 interface ProfileMenuItemProps {
   icon: string;
   label: string;
+  onPress?: () => void;
 }
 
-function ProfileMenuItem({ icon, label }: ProfileMenuItemProps) {
+function ProfileMenuItem({ icon, label, onPress }: ProfileMenuItemProps) {
   return (
-    <TouchableOpacity className="bg-surface rounded-lg px-4 py-3 flex-row items-center justify-between border border-border active:opacity-70">
+    <TouchableOpacity 
+      className="bg-surface rounded-lg px-4 py-3 flex-row items-center justify-between border border-border active:opacity-70"
+      onPress={onPress}
+    >
       <View className="flex-row items-center gap-3">
         <Text className="text-2xl">{icon}</Text>
         <Text className="text-foreground font-semibold">{label}</Text>

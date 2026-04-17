@@ -47,7 +47,10 @@ export default function TiffinScreen() {
   }, [authState.user?.id]);
 
   const loadTiffinData = async () => {
-    if (!authState.user?.id) return;
+    if (!authState.user?.id) {
+      setIsLoading(false);
+      return;
+    }
     try {
       setIsLoading(true);
       const [sub, items] = await Promise.all([
@@ -58,7 +61,7 @@ export default function TiffinScreen() {
       
       // Better filtering for tiffin menus
       const tiffinMenus = items.filter(i => 
-        i.category?.toLowerCase().includes('tiffin')
+        i.category?.toLowerCase()?.includes('tiffin')
       );
       setMenuItems(tiffinMenus);
       
@@ -392,7 +395,7 @@ export default function TiffinScreen() {
               <View>
                 <Text className="text-sm font-bold text-foreground capitalize">{meal.mealType}</Text>
                 <Text className="text-xs text-muted">
-                  {menuItems.find(i => i.id === meal.menuId.toString())?.name || 'Standard Menu'}
+                  {meal.menuId ? (menuItems.find(i => i.id === meal.menuId?.toString())?.name || 'Standard Menu') : 'Standard Menu'}
                 </Text>
               </View>
               {editable && (

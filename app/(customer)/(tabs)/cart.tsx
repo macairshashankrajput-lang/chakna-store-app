@@ -50,30 +50,38 @@ export default function CartScreen() {
 
     return (
         <ScreenContainer className="flex-1 bg-background">
-            <View className="px-4 pt-6">
+            <View className="flex-1 px-4 pt-6">
                 <Text className="text-3xl font-bold text-foreground mb-6">Your Cart ({state.items.length})</Text>
-                {state.items.length === 0 ? (
-                    <View className="flex-1 items-center justify-center">
-                        <IconSymbol name="shopping-cart" color="muted" size={64} />
-                        <Text className="text-2xl font-bold text-foreground mt-4">Your cart is empty</Text>
-                        <Text className="text-muted text-center mt-2 px-8">Add items from the menu to get started</Text>
-                    </View>
-                ) : (
-                    <FlatList
-                        data={state.items}
-                        renderItem={renderItem}
-                        keyExtractor={(item) => item.product.id}
-                        contentContainerStyle={{ paddingBottom: 150 }}
-                    />
-                )}
-                {state.items.length > 0 && (
-                    <View className="bg-surface border-t border-border p-6 absolute bottom-20 left-4 right-4 rounded-2xl shadow-2xl">
-                        <View className="flex-row justify-between mb-4">
-                            <Text className="text-lg">Subtotal</Text>
-                            <Text className="text-xl font-bold">₹{state.totals.subtotal.toFixed(0)}</Text>
+                
+                <View className="flex-1">
+                    {state.items.length === 0 ? (
+                        <View className="flex-1 items-center justify-center">
+                            <IconSymbol name="shopping-cart" color="muted" size={64} />
+                            <Text className="text-2xl font-bold text-foreground mt-4">Your cart is empty</Text>
+                            <Text className="text-muted text-center mt-2 px-8">Add items from the menu to get started</Text>
                         </View>
-                        <TouchableOpacity className="bg-primary rounded-2xl py-4 px-6 items-center shadow-lg active:scale-95" onPress={handleCheckout}>
-                            <Text className="text-background font-bold text-lg">Checkout ₹{state.totals.total.toFixed(0)}</Text>
+                    ) : (
+                        <FlatList
+                            data={state.items}
+                            renderItem={renderItem}
+                            keyExtractor={(item) => item.product.id}
+                            showsVerticalScrollIndicator={false}
+                            contentContainerStyle={{ paddingBottom: 20 }}
+                        />
+                    )}
+                </View>
+
+                {state.items.length > 0 && (
+                    <View className="bg-surface border border-border p-6 rounded-3xl shadow-xl mb-4 mt-2">
+                        <View className="flex-row justify-between mb-4">
+                            <Text className="text-lg text-muted">Subtotal</Text>
+                            <Text className="text-xl font-bold text-foreground">₹{state.totals.subtotal.toFixed(0)}</Text>
+                        </View>
+                        <TouchableOpacity 
+                            className="bg-primary rounded-2xl py-4 px-6 items-center shadow-lg active:scale-95 shadow-primary/30" 
+                            onPress={handleCheckout}
+                        >
+                            <Text className="text-white font-bold text-lg">Checkout • ₹{state.totals.total.toFixed(0)}</Text>
                         </TouchableOpacity>
                     </View>
                 )}

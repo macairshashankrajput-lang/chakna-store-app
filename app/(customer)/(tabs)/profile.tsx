@@ -3,15 +3,33 @@
  * User profile, settings, and account management
  */
 
-import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/lib/auth-context';
 import { ScreenContainer } from '@/components/screen-container';
+import { supabase } from '@/lib/supabase-service';
+import { useEffect, useState } from 'react';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { state, signOut } = useAuth();
   const user = state.user;
+  const [pointsBalance, setPointsBalance] = useState<number | null>(null);
+  const [isLoadingPoints, setIsLoadingPoints] = useState(true);
+
+  useEffect(() => {
+    if (user?.id) {
+      supabase
+        .from('users')
+        .select('points_balance')
+        .eq('id', user.id)
+        .single()
+        .then(({ data }) => {
+          setPointsBalance(data?.points_balance ?? 0);
+          setIsLoadingPoints(false);
+        });
+    }
+  }, [user?.id]);
 
   const handleLogout = async () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
@@ -31,32 +49,51 @@ export default function ProfileScreen() {
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
         <View className="px-4 py-6">
           {/* Profile Header */}
-          <View className="bg-surface rounded-2xl p-6 mb-6 items-center border border-border">
-            <View className="w-20 h-20 rounded-full bg-primary items-center justify-center mb-4">
+          <View className="bg-surface rounded-2xl p-6 mb-4 items-center border border-border">
+            <View className="w-20 h-20 rounded-full bg-primary items-center justify-center mb-3">
               <Text className="text-4xl">👤</Text>
             </View>
             <Text className="text-2xl font-bold text-foreground mb-1">{user?.name || 'Guest'}</Text>
-            <Text className="text-muted text-sm">{user?.email}</Text>
-            <Text className="text-muted text-sm">{user?.phone}</Text>
+            {user?.email && <Text className="text-muted text-sm">{user.email.replace('@chakna.app', '')}</Text>}
+            {user?.phone && <Text className="text-muted text-sm">{user.phone}</Text>}
           </View>
+
+          {/* Points Balance Card */}
+          <TouchableOpacity
+            className="bg-primary rounded-2xl px-5 py-4 mb-6 flex-row items-center justify-between"
+            onPress={() => router.push('/(customer)/rewards')}
+          >
+            <View>
+              <Text className="text-white/70 text-xs mb-1">Points Balance</Text>
+              {isLoadingPoints ? (
+                <ActivityIndicator color="white" size="small" />
+              ) : (
+                <Text className="text-white text-2xl font-bold">{pointsBalance ?? 0} pts</Text>
+              )}
+            </View>
+            <View className="items-end">
+              <Text className="text-white text-2xl">🏆</Text>
+              <Text className="text-white/70 text-xs mt-1">View Rewards →</Text>
+            </View>
+          </TouchableOpacity>
 
           {/* Menu Items */}
           <View className="gap-2 mb-6">
-            <ProfileMenuItem icon="📋" label="Order History" onPress={() => router.push('./orders')} />
-            <ProfileMenuItem icon="📍" label="Delivery Addresses" onPress={() => router.push('./addresses')} />
-            <ProfileMenuItem icon="🎟️" label="Coupons & Rewards" onPress={() => router.push('./rewards')} />
-            <ProfileMenuItem icon="⭐" label="Referral Program" onPress={() => router.push('./referral')} />
-            <ProfileMenuItem icon="🔔" label="Notifications" onPress={() => router.push('./notifications')} />
-            <ProfileMenuItem icon="⚙️" label="Settings" onPress={() => router.push('./settings')} />
-            <ProfileMenuItem icon="❓" label="Help & Support" onPress={() => router.push('./help')} />
+            <ProfileMenuItem icon="📋" label="Order History" onPress={() => router.push('/orders')} />
+            <ProfileMenuItem icon="📍" label="Delivery Addresses" onPress={() => router.push('/(customer)/addresses')} />
+            <ProfileMenuItem icon="🎟️" label="Coupons & Rewards" onPress={() => router.push('/(customer)/rewards')} />
+            <ProfileMenuItem icon="⭐" label="Referral Program" onPress={() => router.push('/(customer)/referral')} />
+            <ProfileMenuItem icon="🔔" label="Notifications" onPress={() => router.push('/(customer)/notifications')} />
+            <ProfileMenuItem icon="⚙️" label="Settings" onPress={() => router.push('/(customer)/settings')} />
+            <ProfileMenuItem icon="❓" label="Help & Support" onPress={() => router.push('/(customer)/help')} />
           </View>
 
           {/* Logout Button */}
           <TouchableOpacity
-            className="w-full bg-error rounded-lg py-4 items-center"
+            className="w-full bg-error/10 border border-error rounded-xl py-4 items-center"
             onPress={handleLogout}
           >
-            <Text className="text-background font-bold text-base">Logout</Text>
+            <Text className="text-error font-bold text-base">Logout</Text>
           </TouchableOpacity>
 
           {/* App Version */}
@@ -78,7 +115,7 @@ interface ProfileMenuItemProps {
 function ProfileMenuItem({ icon, label, onPress }: ProfileMenuItemProps) {
   return (
     <TouchableOpacity
-      className="bg-surface rounded-lg px-4 py-3 flex-row items-center justify-between border border-border active:opacity-70"
+      className="bg-surface rounded-xl px-4 py-3 flex-row items-center justify-between border border-border active:opacity-70"
       onPress={onPress}
     >
       <View className="flex-row items-center gap-3">

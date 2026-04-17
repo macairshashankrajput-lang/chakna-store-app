@@ -24,6 +24,7 @@ export interface User {
     address: string;
   };
   referralCode?: string;
+  businessName?: string;
   createdAt: string;
 }
 

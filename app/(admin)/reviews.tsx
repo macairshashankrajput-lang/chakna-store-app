@@ -58,17 +58,17 @@ function ReviewsContent() {
     return (
       <View className="p-4 bg-surface rounded-lg border border-border mb-2">
         <View className="flex-row items-center justify-between mb-2">
-          <Text className="font-bold text-foreground">{item.customerName}</Text>
+          <Text className="font-bold text-foreground">{item.userName || 'Anonymous'}</Text>
           <Text className="text-yellow-400 font-bold">{'★'.repeat(item.rating)}</Text>
         </View>
-        <Text className="text-sm text-muted mb-2">{item.itemName} • {date}</Text>
-        <Text className="text-foreground mb-3">{item.comment}</Text>
+        <Text className="text-sm text-muted mb-2">{date}</Text>
+        <Text className="text-foreground mb-3">{item.comment || 'No comment'}</Text>
         <View className="flex-row gap-2 mb-3">
           <Text className={`px-2 py-1 rounded text-xs font-semibold capitalize ${item.status === 'approved' ? 'bg-success/20 text-success' :
             item.status === 'rejected' ? 'bg-error/20 text-error' :
               'bg-warning/20 text-warning'
             }`}>
-            {item.status}
+            {item.status || 'pending'}
           </Text>
         </View>
         {/* Action Buttons */}
@@ -76,14 +76,14 @@ function ReviewsContent() {
           <View className="flex-row gap-2">
             <TouchableOpacity
               className="flex-1 bg-success/20 border border-success/30 rounded-lg p-2 items-center"
-              onPress={() => handleApprove(item.id)}
+              onPress={() => handleApprove(item.id.toString())}
             >
               <IconSymbol name="checkmark.circle.fill" color="hsl(var(--success))" size={20} />
               <Text className="text-success text-xs font-semibold mt-1">Approve</Text>
             </TouchableOpacity>
             <TouchableOpacity
               className="flex-1 bg-error/20 border border-error/30 rounded-lg p-2 items-center"
-              onPress={() => handleReject(item.id)}
+              onPress={() => handleReject(item.id.toString())}
             >
               <IconSymbol name="xmark.circle.fill" color="hsl(var(--error))" size={20} />
               <Text className="text-error text-xs font-semibold mt-1">Reject</Text>
@@ -111,7 +111,7 @@ function ReviewsContent() {
   // Bulk approve selected pending reviews
   const handleBulkApprove = async () => {
     const pendingSelected = selectedItems.filter(id =>
-      reviews.find(r => r.id === id && r.status === 'pending')
+      reviews.find(r => r.id.toString() === id && r.status === 'pending')
     );
     if (pendingSelected.length === 0) {
       Alert.alert('No Action', 'Select pending reviews to approve.');
@@ -131,7 +131,7 @@ function ReviewsContent() {
   return (
     <AdminDataTable
       data={reviews}
-      keyExtractor={(item) => item.id}
+      keyExtractor={(item) => item.id.toString()}
       renderItem={renderReview as any}
       filterOptions={[
         { label: 'All', value: 'all' },

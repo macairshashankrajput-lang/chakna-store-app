@@ -49,9 +49,9 @@ export default function AdminProfileScreen() {
             <ProfileMenuItem icon="👥" label="User Management" onPress={() => router.push('./manage/vendors')} />
             <ProfileMenuItem icon="🏪" label="Vendor Management" onPress={() => router.push('./manage/vendors')} />
             <ProfileMenuItem icon="📊" label="Platform Analytics" onPress={() => router.push('./manage/analytics')} />
-            <ProfileMenuItem icon="⚙️" label="System Settings" onPress={() => router.push('./manage/notifications')} />
-            <ProfileMenuItem icon="🔐" label="Security" onPress={() => router.push('./manage/export')} />
-            <ProfileMenuItem icon="❓" label="Help & Support" onPress={() => router.push('./manage/notifications')} />
+            <ProfileMenuItem icon="⚙️" label="System Settings" onPress={() => router.push('./manage/settings')} />
+            <ProfileMenuItem icon="🔐" label="Security" onPress={() => router.push({ pathname: './manage/info', params: { type: 'security' } })} />
+            <ProfileMenuItem icon="❓" label="Help & Support" onPress={() => router.push({ pathname: './manage/info', params: { type: 'support' } })} />
           </View>
 
           <TouchableOpacity

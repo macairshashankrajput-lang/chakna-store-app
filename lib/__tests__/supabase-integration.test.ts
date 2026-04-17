@@ -4,7 +4,6 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import * as supabaseAuth from '../../supabase-auth';
 
 describe('Authentication Integration', () => {
   describe('Admin Login Flow', () => {

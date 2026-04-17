@@ -5,11 +5,13 @@
  */
 
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import { ScreenContainer } from '@/components/screen-container';
 import { useAuth } from '@/lib/auth-context';
+
+const appLogo = require('@/applogo.png');
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -141,7 +143,13 @@ export default function RegisterScreen() {
       <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingVertical: 16 }} showsVerticalScrollIndicator={false}>
         <View className="px-6 py-4">
           {/* Header */}
-          <View className="mb-5">
+          <View className="mb-5 items-center">
+            <View className="mb-4 bg-surface p-4 shadow-sm items-center justify-center">
+              <Image
+                source={appLogo}
+                style={{ width: 120, height: 120, resizeMode: 'contain' }}
+              />
+            </View>
             <Text className="text-4xl font-bold text-foreground mb-2">Create Account</Text>
             <Text className="text-base text-muted">Join Chakna Store today</Text>
           </View>

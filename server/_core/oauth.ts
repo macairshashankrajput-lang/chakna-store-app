@@ -13,7 +13,6 @@ async function syncUser(userInfo: {
   openId?: string | null;
   name?: string | null;
   email?: string | null;
-  loginMethod?: string | null;
   platform?: string | null;
 }) {
   if (!userInfo.openId) {
@@ -24,8 +23,7 @@ async function syncUser(userInfo: {
   await upsertUser({
     openId: userInfo.openId,
     name: userInfo.name || null,
-    email: userInfo.email ?? null,
-    loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
+    email: userInfo.email ?? `${userInfo.openId}@placeholder.com`,
     lastSignedIn,
   });
   const saved = await getUserByOpenId(userInfo.openId);
@@ -33,8 +31,7 @@ async function syncUser(userInfo: {
     saved ?? {
       openId: userInfo.openId,
       name: userInfo.name,
-      email: userInfo.email,
-      loginMethod: userInfo.loginMethod ?? null,
+      email: userInfo.email ?? `${userInfo.openId}@placeholder.com`,
       lastSignedIn,
     }
   );
@@ -47,7 +44,6 @@ function buildUserResponse(
         openId: string;
         name?: string | null;
         email?: string | null;
-        loginMethod?: string | null;
         lastSignedIn?: Date | null;
       },
 ) {
@@ -56,7 +52,6 @@ function buildUserResponse(
     openId: user?.openId ?? null,
     name: user?.name ?? null,
     email: user?.email ?? null,
-    loginMethod: user?.loginMethod ?? null,
     lastSignedIn: (user?.lastSignedIn ?? new Date()).toISOString(),
   };
 }

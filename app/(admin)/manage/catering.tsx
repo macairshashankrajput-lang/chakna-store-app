@@ -3,91 +3,73 @@
  * View and manage customer catering service requests
  */
 
-import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Alert, ActivityIndicator, RefreshControl } from 'react-native';
 import { ScreenContainer } from '@/components/screen-container';
-import { useState } from 'react';
-
-interface CateringRequest {
-  id: string;
-  customerName: string;
-  customerPhone: string;
-  eventName: string;
-  eventDate: string;
-  guestCount: number;
-  budget: number;
-  status: 'pending' | 'approved' | 'rejected';
-  submittedDate: string;
-}
-
-const customerRequests: CateringRequest[] = [
-  {
-    id: '1',
-    customerName: 'Rajesh Kumar',
-    customerPhone: '9876543210',
-    eventName: 'Wedding Reception',
-    eventDate: '2026-05-15',
-    guestCount: 150,
-    budget: 75000,
-    status: 'pending',
-    submittedDate: '2026-04-08',
-  },
-  {
-    id: '2',
-    customerName: 'Priya Singh',
-    customerPhone: '9123456789',
-    eventName: 'Birthday Party',
-    eventDate: '2026-04-20',
-    guestCount: 50,
-    budget: 15000,
-    status: 'approved',
-    submittedDate: '2026-04-07',
-  },
-  {
-    id: '3',
-    customerName: 'Amit Patel',
-    customerPhone: '9988776655',
-    eventName: 'Corporate Event',
-    eventDate: '2026-05-01',
-    guestCount: 200,
-    budget: 100000,
-    status: 'pending',
-    submittedDate: '2026-04-06',
-  },
-];
-
-export const unstable_settings = {
-  preserveState: true
-};
+import { useState, useEffect, useCallback } from 'react';
+import { cateringService } from '@/lib/supabase-service';
 
 export default function AdminCateringScreen() {
-  const [requests, setRequests] = useState(customerRequests);
+  const [requests, setRequests] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+
+  const fetchRequests = useCallback(async () => {
+    try {
+      const data = await cateringService.getAllRequests();
+      setRequests(data);
+    } catch (error) {
+      console.error('Failed to fetch catering requests:', error);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchRequests();
+  }, [fetchRequests]);
+
+  const onRefresh = () => {
+    setIsRefreshing(true);
+    fetchRequests();
+  };
 
   const filteredRequests = requests.filter(req =>
     filterStatus === 'all' ? true : req.status === filterStatus
   );
 
-  const handleApprove = (id: string) => {
+  const handleApprove = (id: string | number) => {
     Alert.alert('Approve Request', 'Send approval to customer?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Approve',
-        onPress: () => {
-          setRequests(requests.map(r => r.id === id ? { ...r, status: 'approved' } : r));
-          Alert.alert('Success', 'Request approved and customer notified');
+        onPress: async () => {
+          try {
+            await cateringService.updateRequestStatus(id, 'approved');
+            setRequests(requests.map(r => r.id === id ? { ...r, status: 'approved' } : r));
+            Alert.alert('Success', 'Request approved and customer notified');
+          } catch (error) {
+            Alert.alert('Error', 'Failed to update request status');
+          }
         },
       },
     ]);
   };
 
-  const handleReject = (id: string) => {
+  const handleReject = (id: string | number) => {
     Alert.alert('Reject Request', 'Are you sure? Customer will be notified.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Reject',
-        onPress: () => {
-          setRequests(requests.map(r => r.id === id ? { ...r, status: 'rejected' } : r));
-          Alert.alert('Success', 'Request rejected');
+        onPress: async () => {
+          try {
+            await cateringService.updateRequestStatus(id, 'rejected');
+            setRequests(requests.map(r => r.id === id ? { ...r, status: 'rejected' } : r));
+            Alert.alert('Success', 'Request rejected');
+          } catch (error) {
+            Alert.alert('Error', 'Failed to update request status');
+          }
         },
         style: 'destructive',
       },
@@ -125,7 +107,12 @@ export default function AdminCateringScreen() {
 
           {/* Requests List */}
           <View>
-            {filteredRequests.length > 0 ? (
+            {isLoading ? (
+              <View className="items-center py-20">
+                <ActivityIndicator size="large" color="#E25C3D" />
+                <Text className="text-muted mt-4">Loading requests...</Text>
+              </View>
+            ) : filteredRequests.length > 0 ? (
               filteredRequests.map(request => (
                 <View
                   key={request.id}
@@ -135,9 +122,9 @@ export default function AdminCateringScreen() {
                   <View className="flex-row items-start justify-between mb-3">
                     <View className="flex-1">
                       <Text className="text-base font-bold text-foreground">
-                        {request.eventName}
+                        {request.menu_preferences || 'Catering Request'}
                       </Text>
-                      <Text className="text-sm text-muted">{request.customerName}</Text>
+                      <Text className="text-sm text-muted">{request.users?.name || 'Unknown'}</Text>
                     </View>
                     <View
                       className={`px-2 py-1 rounded ${request.status === 'approved'
@@ -151,8 +138,8 @@ export default function AdminCateringScreen() {
                         className={`text-xs font-semibold capitalize ${request.status === 'approved'
                             ? 'text-success'
                             : request.status === 'rejected'
-                              ? 'text-error'
-                              : 'text-warning'
+                               ? 'text-error'
+                               : 'text-warning'
                           }`}
                       >
                         {request.status}
@@ -164,23 +151,31 @@ export default function AdminCateringScreen() {
                   <View className="gap-2 mb-3 pb-3 border-b border-border">
                     <View className="flex-row items-center justify-between">
                       <Text className="text-sm text-muted">Phone</Text>
-                      <Text className="text-sm text-foreground font-semibold">{request.customerPhone}</Text>
+                      <Text className="text-sm text-foreground font-semibold">{request.users?.phone || 'N/A'}</Text>
                     </View>
                     <View className="flex-row items-center justify-between">
                       <Text className="text-sm text-muted">Event Date</Text>
-                      <Text className="text-sm text-foreground font-semibold">{request.eventDate}</Text>
+                      <Text className="text-sm text-foreground font-semibold">
+                        {request.event_date ? new Date(request.event_date).toLocaleDateString() : 'N/A'}
+                      </Text>
                     </View>
                     <View className="flex-row items-center justify-between">
                       <Text className="text-sm text-muted">Guests</Text>
-                      <Text className="text-sm text-foreground font-semibold">{request.guestCount}</Text>
+                      <Text className="text-sm text-foreground font-semibold">{request.guest_count || 0}</Text>
                     </View>
                     <View className="flex-row items-center justify-between">
                       <Text className="text-sm text-muted">Budget</Text>
-                      <Text className="text-sm text-primary font-bold">₹{request.budget}</Text>
+                      <Text className="text-sm text-primary font-bold">₹{request.budget || 0}</Text>
+                    </View>
+                    <View className="flex-row items-center justify-between">
+                      <Text className="text-sm text-muted">Location</Text>
+                      <Text className="text-sm text-foreground font-semibold text-right flex-1 ml-4" numberOfLines={1}>{request.location || 'N/A'}</Text>
                     </View>
                     <View className="flex-row items-center justify-between">
                       <Text className="text-sm text-muted">Submitted</Text>
-                      <Text className="text-sm text-foreground font-semibold">{request.submittedDate}</Text>
+                      <Text className="text-sm text-foreground font-semibold">
+                        {request.created_at ? new Date(request.created_at).toLocaleDateString() : 'N/A'}
+                      </Text>
                     </View>
                   </View>
 

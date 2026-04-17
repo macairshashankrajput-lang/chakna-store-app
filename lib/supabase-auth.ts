@@ -70,6 +70,7 @@ function supabaseUserToAppUser(
         phone: normalizedPhone,
         role: finalRole,
         referralCode,
+        businessName: supabaseUser.user_metadata?.businessName || supabaseUser.user_metadata?.business_name,
         createdAt: new Date().toISOString(),
     };
 }
@@ -331,7 +332,7 @@ async function queryProfileByAuthId(authId: string): Promise<Partial<User> | nul
     for (const table of tables) {
         const attempts = [
             table === 'users'
-                ? supabase.from(table).select('*').or(`id.eq.${authId},openId.eq.${authId}`).limit(1).maybeSingle()
+                ? supabase.from(table).select('*').or(`id.eq.${authId},open_id.eq.${authId}`).limit(1).maybeSingle()
                 : supabase.from(table).select('*').eq('id', authId).limit(1).maybeSingle(),
             supabase.from(table).select('*').eq('id', authId).limit(1).maybeSingle(),
         ];
@@ -356,6 +357,7 @@ async function queryProfileByAuthId(authId: string): Promise<Partial<User> | nul
                     phone: data.phone,
                     role: data.role as UserRole,
                     referralCode: data.referralCode ?? data.referral_code ?? undefined,
+                    businessName: data.businessName ?? data.business_name ?? undefined,
                     createdAt: data.createdAt ?? data.created_at ?? new Date().toISOString(),
                 };
             }
@@ -373,7 +375,7 @@ async function insertProfileForCustomer(userData: User & { deliveryLocation?: an
         email: userData.email?.toLowerCase() || authEmail,
         phone: userData.phone,
         username: userData.username,
-        role: 'customer',
+        role: userData.role,
         status: 'active',
         delivery_location: userData.deliveryLocation || null,
         created_at: userData.createdAt || new Date().toISOString(),
@@ -416,6 +418,7 @@ async function getOrCreateUserProfile(
             phone: profile.phone ?? normalizePhone(phone ?? supabaseUser.user_metadata?.phone ?? ''),
             role: profile.role ?? defaultRole,
             referralCode: profile.referralCode,
+            businessName: profile.businessName,
             createdAt: profile.createdAt ?? new Date().toISOString(),
         };
     }
@@ -425,16 +428,15 @@ async function getOrCreateUserProfile(
     if (username) {
         const insertData: Record<string, any> = {
             id: userData.id,
-            openId: userData.id,
+            open_id: userData.id,
             email: userData.email,
             name: userData.name,
             phone: userData.phone,
             role: userData.role,
-            loginMethod: 'email',
             referral_code: userData.referralCode ?? null,
             points_balance: 0,
             delivery_location: deliveryLocation || userData.deliveryLocation || null,
-            createdAt: userData.createdAt,
+            created_at: userData.createdAt,
         };
 
         if (userData.username) {

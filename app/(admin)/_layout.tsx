@@ -12,6 +12,7 @@ import { AdminProvider, useAdminContext } from '@/lib/admin-context';
 
 const adminNavItems = [
   { label: 'Overview', route: './', icon: 'house.fill' },
+  { label: 'Order Management', route: './orders', icon: 'cart.fill' },
   { label: 'Menu Management', route: './menu', icon: 'fork.knife' },
   { label: 'Vendor Management', route: './manage/vendors', icon: 'building.2.fill' },
   { label: 'Reviews', route: './reviews', icon: 'star.fill' },

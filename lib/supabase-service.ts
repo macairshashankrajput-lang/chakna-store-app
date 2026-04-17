@@ -149,7 +149,21 @@ export const menuService = {
         callback(items);
       })
       .subscribe();
-    return () => supabase.removeChannel(channel);
+    return () => { supabase.removeChannel(channel); };
+  },
+
+  getVendorMenu: async (vendorId: string): Promise<MenuItem[]> => {
+    try {
+      // If vendor-specific menu is supported via a vendor_id column
+      const { data, error } = await supabase.from('menu').select('*').eq('vendor_id', vendorId).eq('is_active', true);
+      if (error || !data || data.length === 0) {
+        // Fall back to returning all active items if vendor_id column doesn't exist
+        return menuService.getAllMenuItems();
+      }
+      return (data as any[]).map(item => ({ ...item, id: item.id.toString() })) as MenuItem[];
+    } catch {
+      return menuService.getAllMenuItems();
+    }
   },
 
   addMenuItem: async (item: Omit<MenuItem, 'id' | 'createdAt' | 'isActive'>) => {
@@ -165,7 +179,7 @@ export const menuService = {
     return { ...data, id: data.id.toString() } as MenuItem;
   },
 
-  updateMenuItem: async (id: string, updates: any) => {
+  updateMenuItem: async (id: string | number, updates: any) => {
     const { error } = await supabase.from('menu').update({
       name: updates.name,
       price: updates.price,
@@ -248,6 +262,20 @@ export const cateringService = {
     const { data, error } = await supabase.from('catering_requests').select('*').eq('user_id', userId).order('created_at', { ascending: false });
     handleError(error);
     return data as CateringRequest[];
+  },
+
+  getAllRequests: async (): Promise<CateringRequest[]> => {
+    const { data, error } = await supabase
+      .from('catering_requests')
+      .select('*, users!user_id(name, phone)')
+      .order('created_at', { ascending: false });
+    handleError(error);
+    return data as any[];
+  },
+
+  updateRequestStatus: async (id: number | string, status: string) => {
+    const { error } = await supabase.from('catering_requests').update({ status }).eq('id', id);
+    handleError(error);
   }
 };
 
@@ -263,6 +291,20 @@ export const tiffinService = {
     skipDates?: string[]
   }) => {
     const { meals, defaultMenuId, excludeWeekends, skipDates, ...subData } = sub;
+
+    // Check if user has enough points
+    const { data: profile, error: profileError } = await supabase.from('users').select('points_balance').eq('id', subData.userId).single();
+    if (profileError) throw profileError;
+    if ((profile?.points_balance || 0) < subData.totalPoints) {
+      throw new Error(`Insufficient points. You need ${subData.totalPoints} points but have ${profile?.points_balance || 0}.`);
+    }
+
+    // Deduct points from user
+    const { error: deductError } = await supabase.from('users').update({ 
+      points_balance: (profile.points_balance || 0) - subData.totalPoints 
+    }).eq('id', subData.userId);
+    if (deductError) throw deductError;
+
     const { data: newSub, error } = await supabase.from('tiffin_subscriptions').insert({
       ...subData,
       remaining_points: subData.totalPoints,
@@ -425,13 +467,24 @@ export const orderService = {
 
     return {
       ...order,
-      items: items.map(item => ({
+      items: (items || []).map(item => ({
         ...item,
         name: item.menu?.name,
         menuPrice: item.menu?.price,
         image: item.menu?.image
       }))
     };
+  },
+
+  subscribeToOrders: (callback: (orders: Order[]) => void) => {
+    const channel = supabase
+      .channel('order-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, async () => {
+        const orders = await orderService.getAllOrders();
+        callback(orders);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }
 };
 
@@ -478,7 +531,181 @@ export const reviewService = {
         callback(reviews);
       })
       .subscribe();
-    return () => supabase.removeChannel(channel);
+    return () => { supabase.removeChannel(channel); };
+  }
+};
+
+export interface VendorUser extends UserProfile {
+  businessName: string | null;
+}
+
+// ============================================================================
+// VENDOR OPERATIONS
+// ============================================================================
+
+export const vendorService = {
+  getAllVendors: async (): Promise<VendorUser[]> => {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('role', 'vendor')
+      .order('created_at', { ascending: false });
+    handleError(error);
+    return (data as any[]).map(v => ({
+      ...v,
+      id: v.id,
+      username: v.username,
+      name: v.name,
+      email: v.email,
+      phone: v.phone,
+      role: v.role,
+      status: v.status,
+      businessName: v.business_name || v.name,
+      createdAt: v.created_at
+    })) as VendorUser[];
+  },
+
+  updateVendorStatus: async (vendorId: string, status: string) => {
+    const { error } = await supabase.from('users').update({ status }).eq('id', vendorId);
+    handleError(error);
+  },
+
+  deleteVendor: async (vendorId: string) => {
+    // Delete from public.users first
+    const { error: profileError } = await supabase.from('users').delete().eq('id', vendorId);
+    handleError(profileError);
+    // Note: auth.users deletion usually happens via admin API or service role key
+  },
+
+  createVendor: async (vendor: any) => {
+    // For admin operations, we use a service role client if key is available
+    const serviceKey = supabaseConfig.serviceRoleKey;
+    const client = serviceKey ? createClient(supabaseConfig.url, serviceKey) : supabase;
+    
+    // Create auth user
+    const { data: authData, error: authError } = await (client.auth.admin ? client.auth.admin.createUser({
+      email: vendor.email || `${vendor.username}@chakna.app`,
+      password: vendor.password,
+      email_confirm: true,
+      user_metadata: {
+        role: 'vendor',
+        name: vendor.name,
+        username: vendor.username,
+        businessName: vendor.businessName
+      }
+    }) : Promise.reject(new Error('Admin client not available')));
+
+    if (authError) throw authError;
+
+    // Create profile
+    const { error: profileError } = await supabase.from('users').insert({
+      id: authData.user.id,
+      username: vendor.username,
+      name: vendor.name,
+      email: vendor.email || `${vendor.username}@chakna.app`,
+      phone: vendor.phone,
+      role: 'vendor',
+      status: vendor.status || 'active',
+      business_name: vendor.businessName,
+      created_at: new Date().toISOString()
+    });
+
+    if (profileError) {
+      // Cleanup auth user if profile creation fails
+      await client.auth.admin.deleteUser(authData.user.id);
+      throw profileError;
+    }
+
+    return authData.user;
+  },
+
+  updateVendor: async (vendorId: string, updates: Partial<VendorUser>) => {
+    const { error } = await supabase.from('users').update({
+      name: updates.name,
+      email: updates.email,
+      phone: updates.phone,
+      business_name: updates.businessName,
+      updated_at: new Date().toISOString()
+    }).eq('id', vendorId);
+    handleError(error);
+  }
+};
+
+// ============================================================================
+// CHAT OPERATIONS
+// ============================================================================
+
+export const chatService = {
+  getChats: async (userId: string) => {
+    const { data, error } = await supabase
+      .from('chats')
+      .select('*, customer:customer_id(name), vendor:vendor_id(name, business_name)')
+      .or(`customer_id.eq.${userId},vendor_id.eq.${userId}`)
+      .order('updated_at', { ascending: false });
+    handleError(error);
+    return data;
+  },
+
+  getMessages: async (chatId: string) => {
+    const { data, error } = await supabase
+      .from('chat_messages')
+      .select('*')
+      .eq('chat_id', chatId)
+      .order('created_at', { ascending: true });
+    handleError(error);
+    return data;
+  },
+
+  sendMessage: async (chatId: string, senderId: string, content: string) => {
+    const { data, error } = await supabase.from('chat_messages').insert({
+      chat_id: chatId,
+      sender_id: senderId,
+      content
+    }).select().single();
+    handleError(error);
+    
+    // Update last message in chat
+    await supabase.from('chats').update({
+      last_message: content,
+      updated_at: new Date().toISOString()
+    }).eq('id', chatId);
+    
+    return data;
+  },
+
+  getOrCreateChat: async (customerId: string, vendorId: string) => {
+    const { data, error } = await supabase
+      .from('chats')
+      .select('*')
+      .eq('customer_id', customerId)
+      .eq('vendor_id', vendorId)
+      .maybeSingle();
+    
+    if (data) return data;
+
+    const { data: newChat, error: createError } = await supabase
+      .from('chats')
+      .insert({ customer_id: customerId, vendor_id: vendorId })
+      .select()
+      .single();
+    
+    handleError(createError);
+    return newChat;
+  },
+
+  subscribeToMessages: (chatId: string, callback: (message: any) => void) => {
+    const channel = supabase
+      .channel(`chat-${chatId}`)
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'chat_messages',
+        filter: `chat_id=eq.${chatId}` 
+      }, (payload) => {
+        callback(payload.new);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }
 };
 

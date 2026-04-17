@@ -43,7 +43,13 @@ export default function MenuItemDetailScreen() {
   }, [id]);
 
   const handleAddToCart = (item: MenuItem) => {
-    addItem({ ...item, vendorId: 'chakna-store' }, 1);
+    addItem({ 
+      ...item, 
+      available: item.isActive,
+      description: item.description || '',
+      category: item.category || 'General',
+      vendorId: 'chakna-store' 
+    }, 1);
     router.push('/cart');
   };
 

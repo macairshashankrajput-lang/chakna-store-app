@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import { InsertUser, users } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -9,7 +10,8 @@ let _db: ReturnType<typeof drizzle> | null = null;
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      const client = postgres(process.env.DATABASE_URL);
+      _db = drizzle(client);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -18,7 +20,7 @@ export async function getDb() {
   return _db;
 }
 
-export async function upsertUser(user: Partial<InsertUser> & { openId: string }): Promise<void> {
+export async function upsertUser(user: Partial<InsertUser> & { openId: string; id?: string }): Promise<void> {
   if (!user.openId) {
     throw new Error("User openId is required for upsert");
   }
@@ -30,17 +32,19 @@ export async function upsertUser(user: Partial<InsertUser> & { openId: string })
   }
 
   try {
-    const values: Partial<InsertUser> & { openId: string; username: string } = {
+    const values: any = {
+      id: user.id ?? user.openId,
       openId: user.openId,
       username: user.username ?? user.openId,
+      email: user.email ?? `${user.openId}@placeholder.com`,
     };
     const updateSet: Record<string, unknown> = {};
 
-    const textFields = ["name", "email", "loginMethod"] as const;
+    const textFields = ["name", "email", "phone"] as const;
     type TextField = (typeof textFields)[number];
 
     const assignNullable = (field: TextField) => {
-      const value = user[field];
+      const value = (user as any)[field];
       if (value === undefined) return;
       const normalized = value ?? null;
       values[field] = normalized;
@@ -69,7 +73,8 @@ export async function upsertUser(user: Partial<InsertUser> & { openId: string })
       updateSet.lastSignedIn = new Date();
     }
 
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
+    await db.insert(users).values(values as InsertUser).onConflictDoUpdate({
+      target: users.openId,
       set: updateSet,
     });
   } catch (error) {
