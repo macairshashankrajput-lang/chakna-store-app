@@ -1,98 +1,116 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { integer, pgEnum, pgTable, text, timestamp, varchar, boolean, doublePrecision, jsonb } from "drizzle-orm/pg-core";
 
 /**
  * Core user table backing auth flow.
- * Extend this file with additional tables as your product grows.
  * Columns use camelCase to match both database fields and generated types.
  */
-export const users = mysqlTable("users", {
-  /**
-   * Surrogate primary key. Auto-incremented numeric value managed by the database.
-   * Use this for relations between tables.
-   */
-  id: int("id").autoincrement().primaryKey(),
-  /** Manus OAuth identifier (openId) returned from the OAuth callback. Unique per user. */
-  openId: varchar("openId", { length: 64 }).notNull().unique(),
+export const userRoleEnum = pgEnum("user_role", ["customer", "vendor", "admin"]);
+export const userStatusEnum = pgEnum("user_status", ["active", "inactive", "pending"]);
+
+export const users = pgTable("users", {
+  id: varchar("id", { length: 255 }).primaryKey(), // Supabase Auth ID (UUID string)
+  openId: varchar("open_id", { length: 255 }).unique(),
   username: varchar("username", { length: 64 }).notNull().unique(),
   name: text("name"),
-  email: varchar("email", { length: 320 }),
-  loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["customer", "vendor", "admin"]).default("customer").notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-  lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
+  email: varchar("email", { length: 320 }).notNull().unique(),
+  phone: varchar("phone", { length: 20 }),
+  role: userRoleEnum("role").default("customer").notNull(),
+  status: userStatusEnum("status").default("active").notNull(),
+  referralCode: varchar("referral_code", { length: 50 }).unique(),
+  pointsBalance: integer("points_balance").default(0).notNull(),
+  deliveryLocation: jsonb("delivery_location"), // { address: string, latitude: number, longitude: number }
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  lastSignedIn: timestamp("last_signed_in").defaultNow().notNull(),
 });
 
-export const menu = mysqlTable("menu", {
-  id: int("id").autoincrement().primaryKey(),
+export const foodTypeEnum = pgEnum("food_type", ["veg", "non-veg"]);
+
+export const menu = pgTable("menu", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
   category: varchar("category", { length: 100 }),
-  type: mysqlEnum("type", ["veg", "non-veg"]),
-  price: int("price").notNull(), // in paise
+  type: foodTypeEnum("type").default("veg"),
+  price: integer("price").notNull(), // in paise/cents
+  image: text("image"),
   ingredients: text("ingredients"),
-  isActive: int("is_active").default(1).notNull(),
-  createdAt: timestamp("createdAt").defaultNow(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const orders = mysqlTable("orders", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("user_id").references(() => users.id).notNull(),
-  vendorId: int("vendor_id").references(() => users.id),
-  type: mysqlEnum("type", ["chakna", "tiffin", "catering"]),
-  totalPrice: int("total_price").notNull(),
-  status: varchar("status", { length: 50 }).default("pending"),
-  createdAt: timestamp("createdAt").defaultNow(),
+export const orderTypeEnum = pgEnum("order_type", ["chakna", "tiffin", "catering"]);
+export const orderStatusEnum = pgEnum("order_status", ["pending", "cooking", "out_for_delivery", "delivered", "cancelled"]);
+
+export const orders = pgTable("orders", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  userId: varchar("user_id", { length: 255 }).references(() => users.id).notNull(),
+  vendorId: varchar("vendor_id", { length: 255 }).references(() => users.id),
+  type: orderTypeEnum("type").notNull(),
+  totalPrice: integer("total_price").notNull(),
+  status: orderStatusEnum("status").default("pending").notNull(),
+  paymentStatus: varchar("payment_status", { length: 50 }).default("pending"),
+  receiptImage: text("receipt_image"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const orderItems = mysqlTable("order_items", {
-  id: int("id").autoincrement().primaryKey(),
-  orderId: int("order_id").references(() => orders.id).notNull(),
-  menuId: int("menu_id").references(() => menu.id).notNull(),
-  quantity: int("quantity").notNull(),
-  price: int("price").notNull(),
+export const orderItems = pgTable("order_items", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  orderId: integer("order_id").references(() => orders.id).notNull(),
+  menuId: integer("menu_id").references(() => menu.id).notNull(),
+  quantity: integer("quantity").notNull(),
+  price: integer("price").notNull(),
 });
 
-export const tiffinSubscriptions = mysqlTable("tiffin_subscriptions", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("user_id").references(() => users.id).notNull(),
+export const cateringRequests = pgTable("catering_requests", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  userId: varchar("user_id", { length: 255 }).references(() => users.id).notNull(),
+  eventDate: timestamp("event_date").notNull(),
+  guestCount: integer("guest_count").notNull(),
+  location: text("location").notNull(),
+  budget: integer("budget"),
+  menuPreferences: text("menu_preferences"),
+  notes: text("notes"),
+  status: varchar("status", { length: 50 }).default("pending").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const tiffinSubscriptions = pgTable("tiffin_subscriptions", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  userId: varchar("user_id", { length: 255 }).references(() => users.id).notNull(),
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date").notNull(),
-  totalPoints: int("total_points").notNull(),
-  remainingPoints: int("remaining_points").notNull(),
-  status: varchar("status", { length: 50 }).default("active"),
+  totalPoints: integer("total_points").notNull(),
+  remainingPoints: integer("remaining_points").notNull(),
+  status: varchar("status", { length: 50 }).default("active").notNull(),
 });
 
-export const tiffinSchedule = mysqlTable("tiffin_schedule", {
-  id: int("id").autoincrement().primaryKey(),
-  subscriptionId: int("subscription_id").references(() => tiffinSubscriptions.id).notNull(),
+export const mealTypeEnum = pgEnum("meal_type", ["breakfast", "lunch", "dinner"]);
+
+export const tiffinSchedule = pgTable("tiffin_schedule", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  subscriptionId: integer("subscription_id").references(() => tiffinSubscriptions.id).notNull(),
   date: timestamp("date").notNull(),
-  mealType: mysqlEnum("meal_type", ["breakfast", "lunch", "dinner"]),
-  menuId: int("menu_id").references(() => menu.id),
+  mealType: mealTypeEnum("meal_type").notNull(),
+  menuId: integer("menu_id").references(() => menu.id),
   editableUntil: timestamp("editable_until"),
+  isChanged: boolean("is_changed").default(false), // tracking the 1 complimentary date change if needed
 });
 
-export const coupons = mysqlTable("coupons", {
-  id: int("id").autoincrement().primaryKey(),
-  code: varchar("code", { length: 50 }).unique().notNull(),
-  discountType: mysqlEnum("discount_type", ["percentage", "fixed"]),
-  value: int("value").notNull(),
-  expiry: timestamp("expiry"),
-});
-
-export const reviews = mysqlTable("reviews", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("user_id").references(() => users.id).notNull(),
-  orderId: int("order_id").references(() => orders.id).notNull(),
-  rating: int("rating").notNull(),
+export const reviews = pgTable("reviews", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  userId: varchar("user_id", { length: 255 }).references(() => users.id).notNull(),
+  orderId: integer("order_id").references(() => orders.id),
+  rating: integer("rating").notNull(),
   comment: text("comment"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// Update types
-// Consolidated types (avoid duplicates)
+// Consolidated types
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type MenuItem = typeof menu.$inferSelect;
 export type Order = typeof orders.$inferSelect;
 export type TiffinSubscription = typeof tiffinSubscriptions.$inferSelect;
 export type TiffinSchedule = typeof tiffinSchedule.$inferSelect;
-// Add more as needed
+export type CateringRequest = typeof cateringRequests.$inferSelect;

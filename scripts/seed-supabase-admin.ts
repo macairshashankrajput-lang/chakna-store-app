@@ -96,16 +96,17 @@ async function main() {
 
     const profile = {
         id: adminUser.id,
-        openId: adminUser.id,
         username: 'adminchaknaco',
         email: ADMIN_EMAIL,
         name: ADMIN_NAME,
         phone: dbPhone,
         role: 'admin',
-        loginMethod: 'email',
+        status: 'active',
         referral_code: null,
         points_balance: 0,
-        createdAt: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        last_signed_in: new Date().toISOString(),
     };
 
     const { error: profileError } = await supabase.from('users').upsert(profile, { onConflict: 'id' });

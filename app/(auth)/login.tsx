@@ -54,7 +54,7 @@ export default function LoginScreen() {
             <View className="mb-4 bg-surface p-4 shadow-sm items-center justify-center">
               <Image
                 source={appLogo}
-                style={{ width: 96, height: 96, resizeMode: 'cover', borderRadius: 48 }}
+                style={{ width: 96, height: 96, resizeMode: 'cover', borderRadius: 0 }}
               />
             </View>
             <Text className="text-4xl font-bold text-primary mb-2">Chakna Store</Text>

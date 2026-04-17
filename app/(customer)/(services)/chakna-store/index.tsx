@@ -51,7 +51,14 @@ export default function ChaknaStoreListingScreen() {
   const cartCount = state.items.reduce((sum, item) => sum + item.quantity, 0);
 
   const handleAddToCart = (item: MenuItem) => {
-    addItem({ ...item, vendorId: 'chakna-store' }, 1);
+    const product: any = {
+      ...item,
+      description: item.description || '',
+      category: item.category || 'General',
+      available: item.isActive,
+      vendorId: 'chakna-store',
+    };
+    addItem(product, 1);
   };
 
   const handleViewDetails = (itemId: string) => {
@@ -102,29 +109,35 @@ export default function ChaknaStoreListingScreen() {
             </View>
           ) : null}
 
-          <View className="gap-4 mb-32">
+          <View className="gap-6 mb-32">
             {filteredItems.map((item) => (
-              <View key={item.id} className="bg-surface rounded-xl p-4 border border-border">
-                <View className="flex-row items-start justify-between mb-3">
-                  <View className="flex-1">
-                    <Text className="text-lg font-bold text-foreground mb-1">{item.name}</Text>
-                    <Text className="text-sm text-muted mb-2">{item.description}</Text>
-                    <Text className="text-lg font-bold text-primary">₹{item.price}</Text>
+              <View key={item.id} className="bg-surface rounded-3xl p-5 border border-border shadow-sm">
+                <View className="flex-row justify-between mb-4">
+                  <View className="flex-1 mr-4">
+                    <View className="flex-row items-center mb-2">
+                      <View className={`w-3 h-3 rounded-full mr-2 ${item.type === 'veg' ? 'bg-green-500' : 'bg-red-500'}`} />
+                      <Text className="text-xs font-bold text-muted uppercase tracking-wider">{item.category}</Text>
+                    </View>
+                    <Text className="text-xl font-bold text-foreground mb-1">{item.name}</Text>
+                    <Text className="text-sm text-muted leading-snug" numberOfLines={2}>{item.description}</Text>
+                  </View>
+                  <View className="bg-primary/5 p-3 rounded-2xl items-center justify-center min-w-[80px]">
+                    <Text className="text-primary font-bold text-lg">₹{item.price}</Text>
                   </View>
                 </View>
 
                 <View className="flex-row gap-3">
                   <TouchableOpacity
-                    className="flex-1 bg-primary rounded-lg py-3 items-center"
+                    className="flex-[2] bg-primary rounded-2xl py-4 items-center shadow-md shadow-primary/20"
                     onPress={() => handleAddToCart(item)}
                   >
-                    <Text className="text-background font-bold">Add to Cart</Text>
+                    <Text className="text-white font-bold text-base">Add to Cart</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    className="flex-1 bg-surface border border-border rounded-lg py-3 items-center"
+                    className="flex-1 bg-surface border border-border rounded-2xl py-4 items-center"
                     onPress={() => handleViewDetails(item.id)}
                   >
-                    <Text className="text-foreground font-semibold">View</Text>
+                    <Text className="text-foreground font-semibold">Details</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -133,14 +146,22 @@ export default function ChaknaStoreListingScreen() {
         </View>
       </ScrollView>
 
-      <View className="absolute bottom-20 left-0 right-0 bg-surface border-t border-border p-4">
-        <TouchableOpacity
-          className="bg-primary rounded-lg py-4 items-center"
-          onPress={() => router.push('/cart')}
-        >
-          <Text className="text-background font-bold">View Cart{cartCount > 0 ? ` (${cartCount})` : ''}</Text>
-        </TouchableOpacity>
-      </View>
+      {cartCount > 0 && (
+        <View className="absolute bottom-10 left-6 right-6">
+          <TouchableOpacity
+            className="bg-foreground flex-row items-center justify-between px-8 py-5 rounded-full shadow-2xl"
+            onPress={() => router.push('/cart')}
+          >
+            <View className="flex-row items-center">
+              <View className="bg-primary w-8 h-8 rounded-full items-center justify-center mr-3">
+                <Text className="text-white font-bold text-xs">{cartCount}</Text>
+              </View>
+              <Text className="text-background font-bold text-lg">View Cart</Text>
+            </View>
+            <Text className="text-background/80 font-semibold text-base">₹{state.totals.total}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </ScreenContainer>
   );
 }

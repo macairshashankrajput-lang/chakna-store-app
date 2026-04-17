@@ -3,85 +3,111 @@
  * View order history and status
  */
 
-import React from 'react';
-import { View, Text, FlatList, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/screen-container';
-
-interface Order {
-  id: string;
-  number: string;
-  date: string;
-  status: 'delivered' | 'pending' | 'preparing';
-  total: number;
-  items: number;
-}
+import { orderService, Order } from '@/lib/supabase-service';
+import { useAuth } from '@/lib/auth-context';
+import { format } from 'date-fns';
 
 export default function OrdersScreen() {
   const router = useRouter();
+  const { state: authState } = useAuth();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const mockOrders: Order[] = [
-    {
-      id: '1',
-      number: '#ORD-123',
-      date: '2024-10-20',
-      status: 'delivered' as const,
-      total: 450,
-      items: 3,
-    },
-    {
-      id: '2',
-      number: '#ORD-122',
-      date: '2024-10-19',
-      status: 'pending' as const,
-      total: 320,
-      items: 2,
-    },
-    {
-      id: '3',
-      number: '#ORD-121',
-      date: '2024-10-18',
-      status: 'preparing' as const,
-      total: 580,
-      items: 4,
-    },
-  ];
+  const fetchOrders = async () => {
+    if (!authState.user?.id) return;
+    try {
+      const data = await orderService.getUserOrders(authState.user.id);
+      setOrders(data);
+    } catch (error) {
+      console.error('Failed to fetch orders:', error);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  };
 
-  const statusColors = {
-    delivered: 'bg-success/10 border-success text-success',
-    pending: 'bg-warning/10 border-warning text-warning',
-    preparing: 'bg-primary/10 border-primary text-primary',
+  useEffect(() => {
+    fetchOrders();
+  }, [authState.user?.id]);
+
+  const onRefresh = () => {
+    setIsRefreshing(true);
+    fetchOrders();
+  };
+
+  const statusColors: Record<string, string> = {
+    delivered: 'bg-green-500/10 border-green-500 text-green-500',
+    pending: 'bg-orange-500/10 border-orange-500 text-orange-500',
+    cooking: 'bg-blue-500/10 border-blue-500 text-blue-500',
+    preparing: 'bg-blue-500/10 border-blue-500 text-blue-500',
+    out_for_delivery: 'bg-purple-500/10 border-purple-500 text-purple-500',
+    cancelled: 'bg-red-500/10 border-red-500 text-red-500',
   };
 
   const renderOrder = ({ item }: { item: Order }) => (
     <TouchableOpacity
-      className="bg-surface rounded-2xl p-4 mb-4 border border-border active:opacity-90"
+      className="bg-surface rounded-2xl p-5 mb-4 border border-border shadow-sm active:opacity-90"
       onPress={() => router.push(`./order/${item.id}`)}
     >
-      <View className="flex-row items-center justify-between mb-2">
-        <Text className="text-lg font-bold text-foreground">{item.number}</Text>
-        <Text className="text-primary font-bold text-xl">₹{item.total}</Text>
+      <View className="flex-row items-center justify-between mb-3">
+        <View>
+          <Text className="text-lg font-bold text-foreground">#ORD-{item.id}</Text>
+          <Text className="text-xs text-muted uppercase tracking-wider font-bold">{item.type}</Text>
+        </View>
+        <Text className="text-primary font-bold text-2xl">₹{item.totalPrice}</Text>
       </View>
-      <View className="flex-row items-center justify-between mb-2">
-        <Text className="text-muted text-sm">{item.date} • {item.items} items</Text>
-        <View className={`px-3 py-1 rounded-full border ${statusColors[item.status]}`}>
-          <Text className="text-xs font-semibold capitalize">{item.status}</Text>
+      <View className="flex-row items-center justify-between">
+        <Text className="text-muted text-sm">{format(new Date(item.createdAt), 'MMM d, h:mm a')}</Text>
+        <View className={`px-3 py-1 rounded-full border ${statusColors[item.status] || 'bg-muted/10 border-muted text-muted'}`}>
+          <Text className="text-xs font-bold capitalize">{item.status.replace(/_/g, ' ')}</Text>
         </View>
       </View>
     </TouchableOpacity>
   );
 
+  if (isLoading) {
+    return (
+      <ScreenContainer className="justify-center items-center">
+        <ActivityIndicator size="large" color="#E25C3D" />
+      </ScreenContainer>
+    );
+  }
+
   return (
     <ScreenContainer className="flex-1 bg-background">
-      <View className="px-4 py-6">
-        <Text className="text-2xl font-bold text-foreground mb-6">Your Orders</Text>
-        <FlatList
-          data={mockOrders}
-          renderItem={renderOrder}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingBottom: 100 }}
-          showsVerticalScrollIndicator={false}
-        />
+      <View className="px-4 py-6 flex-1">
+        <Text className="text-3xl font-bold text-foreground mb-6">Your Orders</Text>
+        {orders.length === 0 ? (
+          <View className="flex-1 justify-center items-center px-10">
+            <Text className="text-4xl mb-4">🛒</Text>
+            <Text className="text-xl font-bold text-foreground mb-2">No orders yet</Text>
+            <Text className="text-center text-muted mb-8 leading-relaxed">
+              Looks like you haven't placed any orders yet. Start exploring our menu!
+            </Text>
+            <TouchableOpacity 
+              className="bg-primary px-8 py-4 rounded-2xl"
+              onPress={() => router.push('/')}
+            >
+              <Text className="text-white font-bold">Browse Menu</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <FlatList
+            data={orders}
+            renderItem={renderOrder}
+            keyExtractor={(item) => item.id.toString()}
+            contentContainerStyle={{ paddingBottom: 100 }}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor="#E25C3D" />
+            }
+          />
+        )}
       </View>
     </ScreenContainer>
   );

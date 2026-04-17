@@ -5,8 +5,9 @@
  */
 
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as Location from 'expo-location';
 import { ScreenContainer } from '@/components/screen-container';
 import { useAuth } from '@/lib/auth-context';
 
@@ -22,9 +23,52 @@ export default function RegisterScreen() {
     password: '',
     confirmPassword: '',
     referralCode: '',
+    address: '',
+    latitude: 0,
+    longitude: 0,
   });
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
+
+  const captureLocation = async () => {
+    setIsLocating(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Please grant location permissions to auto-capture your address.');
+        return;
+      }
+      
+      const location = await Location.getCurrentPositionAsync({});
+      const [address] = await Location.reverseGeocodeAsync({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude
+      });
+      
+      if (address) {
+        const formattedAddress = [
+          address.name,
+          address.streetNumber,
+          address.street,
+          address.district,
+          address.city,
+          address.region,
+          address.postalCode
+        ].filter(Boolean).join(', ');
+        setFormData(prev => ({ 
+          ...prev, 
+          address: formattedAddress,
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude
+        }));
+      }
+    } catch (error) {
+      Alert.alert('Location Error', 'Unable to fetch your current location. Please enter your address manually.');
+    } finally {
+      setIsLocating(false);
+    }
+  };
 
   const handleRegister = async () => {
     if (!formData.username.trim()) {
@@ -65,6 +109,11 @@ export default function RegisterScreen() {
         role: 'customer',
         referralCode: formData.referralCode || undefined,
         password: formData.password,
+        deliveryLocation: formData.address ? {
+          address: formData.address,
+          latitude: formData.latitude,
+          longitude: formData.longitude,
+        } : undefined,
       });
       if (result.token) {
         router.replace('/');
@@ -158,6 +207,31 @@ export default function RegisterScreen() {
             <Text className="text-sm text-foreground leading-relaxed">
               You are creating a customer account. Vendor and admin accounts are managed separately by administrators.
             </Text>
+          </View>
+
+          {/* Address (Auto Geo Capture) */}
+          <View className="mb-4">
+            <View className="flex-row justify-between items-center mb-2">
+              <Text className="text-sm font-semibold text-foreground">Delivery Address</Text>
+              <TouchableOpacity onPress={captureLocation} disabled={isLocating || isLoading}>
+                {isLocating ? (
+                  <ActivityIndicator size="small" color="#E25C3D" />
+                ) : (
+                  <Text className="text-sm text-primary font-semibold">Auto Capture</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              className="w-full bg-surface border border-border rounded-lg px-4 py-3 text-foreground"
+              placeholder="123 Main St, City, Zip"
+              placeholderTextColor="#687076"
+              value={formData.address}
+              onChangeText={value => handleInputChange('address', value)}
+              editable={!isLoading}
+              multiline
+              numberOfLines={2}
+              style={{ textAlignVertical: 'top' }}
+            />
           </View>
 
           {/* Password */}

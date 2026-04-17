@@ -180,8 +180,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = useCallback(async (userData: Omit<User, 'id' | 'createdAt' | 'email'> & { password: string; email?: string }) => {
     try {
       dispatch({ type: 'CLEAR_ERROR' });
-      const { email, password, phone, referralCode, name, username } = userData;
-      const result = await supabaseAuth.signUpCustomer(username, password, name, email, phone, referralCode);
+      const { email, password, phone, referralCode, name, username, deliveryLocation } = userData;
+      const result = await supabaseAuth.signUpCustomer(username, password, name, email, phone, referralCode, deliveryLocation);
       if (result.token) {
         await Promise.all([
           AsyncStorage.setItem('userToken', result.token),

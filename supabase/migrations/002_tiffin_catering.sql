@@ -12,6 +12,7 @@ ALTER TABLE tiffin_plans ADD COLUMN IF NOT EXISTS meals_per_day INT DEFAULT 1; -
 ALTER TABLE tiffin_daily_orders ADD COLUMN IF NOT EXISTS plan_id UUID REFERENCES tiffin_plans(id);
 ALTER TABLE tiffin_subscriptions ADD COLUMN IF NOT EXISTS points_used INT;
 ALTER TABLE tiffin_subscriptions ADD COLUMN IF NOT EXISTS customer_id TEXT REFERENCES customers(id);
+ALTER TABLE tiffin_subscriptions ADD COLUMN IF NOT EXISTS plan_id UUID REFERENCES tiffin_plans(id);
 
 -- Indexes for queries
 CREATE INDEX IF NOT EXISTS idx_catering_customer ON catering_requests(customer_id);

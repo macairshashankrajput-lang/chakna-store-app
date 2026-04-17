@@ -26,10 +26,10 @@ export default function SplashScreen() {
   return (
     <ScreenContainer className="flex-1 items-center justify-center bg-background">
       <View className="items-center gap-4">
-        <View className="w-[140px] h-[140px] rounded-full bg-surface p-4 items-center justify-center shadow-sm">
+        <View className="w-[140px] h-[140px] bg-surface p-4 items-center justify-center shadow-sm">
           <Image
             source={appLogo}
-            style={{ width: 96, height: 96, resizeMode: 'cover', borderRadius: 48 }}
+            style={{ width: 96, height: 96, resizeMode: 'cover', borderRadius: 0 }}
           />
         </View>
 
