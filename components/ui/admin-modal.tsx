@@ -19,17 +19,24 @@ export function AdminModal({ isVisible, onClose, title, children, actionButton }
     return (
         <View className={`absolute inset-0 bg-black/50 z-50 ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
             <TouchableOpacity className="flex-1" activeOpacity={1} onPress={onClose} />
-            <View className="bg-surface rounded-t-2xl p-6">
+            <View className="bg-surface rounded-t-3xl p-6 shadow-2xl" style={{ maxHeight: '90%' }}>
                 {/* Header */}
                 <View className="flex-row items-center justify-between mb-6">
-                    <Text className="text-xl font-bold text-foreground">{title}</Text>
-                    <TouchableOpacity onPress={onClose} className="p-2">
-                        <IconSymbol name="xmark.circle.fill" size={24} color="hsl(var(--muted))" />
+                    <View>
+                        <Text className="text-2xl font-bold text-foreground">{title}</Text>
+                        <View className="h-1 w-12 bg-primary rounded-full mt-1" />
+                    </View>
+                    <TouchableOpacity onPress={onClose} className="p-2 bg-muted/10 rounded-full">
+                        <IconSymbol name="xmark" size={20} color="hsl(var(--foreground))" />
                     </TouchableOpacity>
                 </View>
 
                 {/* Content */}
-                <ScrollView className="max-h-96">
+                <ScrollView 
+                    className="flex-none" 
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{ paddingBottom: 20 }}
+                >
                     {children}
                 </ScrollView>
 

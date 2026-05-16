@@ -8,6 +8,7 @@ import { useCart } from '@/lib/cart-context';
 import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/screen-container';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { EmptyState } from '@/components/ui/empty-state';
 
 export default function CartScreen() {
     const { state, updateQuantity, removeItem, clearCart } = useCart();
@@ -55,11 +56,13 @@ export default function CartScreen() {
                 
                 <View className="flex-1">
                     {state.items.length === 0 ? (
-                        <View className="flex-1 items-center justify-center">
-                            <IconSymbol name="shopping-cart" color="muted" size={64} />
-                            <Text className="text-2xl font-bold text-foreground mt-4">Your cart is empty</Text>
-                            <Text className="text-muted text-center mt-2 px-8">Add items from the menu to get started</Text>
-                        </View>
+                        <EmptyState 
+                            emoji="🛒"
+                            title="Your cart is empty"
+                            description="Add delicious chakna and meals from the menu to get started with your order."
+                            buttonLabel="Browse Menu"
+                            onButtonPress={() => router.push('/chakna-store')}
+                        />
                     ) : (
                         <FlatList
                             data={state.items}

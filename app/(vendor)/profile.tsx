@@ -56,6 +56,13 @@ export default function VendorProfileScreen() {
                 {isOnline ? 'OPEN' : 'CLOSED'}
               </Text>
             </TouchableOpacity>
+
+            <TouchableOpacity 
+              onPress={() => router.push('/(vendor)/edit-profile')}
+              className="bg-primary/10 border border-primary/20 rounded-full px-6 py-2 mt-4"
+            >
+              <Text className="text-primary font-bold text-xs">Edit Business Profile</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Menu Items */}

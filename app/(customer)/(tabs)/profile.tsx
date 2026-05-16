@@ -55,7 +55,14 @@ export default function ProfileScreen() {
             </View>
             <Text className="text-2xl font-bold text-foreground mb-1">{user?.name || 'Guest'}</Text>
             {user?.email && <Text className="text-muted text-sm">{user.email.replace('@chakna.app', '')}</Text>}
-            {user?.phone && <Text className="text-muted text-sm">{user.phone}</Text>}
+            {user?.phone && <Text className="text-muted text-sm mb-4">{user.phone}</Text>}
+            
+            <TouchableOpacity 
+              onPress={() => router.push('/(customer)/edit-profile')}
+              className="bg-primary/10 border border-primary/20 rounded-full px-4 py-2 mt-2"
+            >
+              <Text className="text-primary font-bold text-xs">Edit Profile</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Points Balance Card */}
@@ -86,6 +93,8 @@ export default function ProfileScreen() {
             <ProfileMenuItem icon="🔔" label="Notifications" onPress={() => router.push('/(customer)/notifications')} />
             <ProfileMenuItem icon="⚙️" label="Settings" onPress={() => router.push('/(customer)/settings')} />
             <ProfileMenuItem icon="❓" label="Help & Support" onPress={() => router.push('/(customer)/help')} />
+            <ProfileMenuItem icon="⚖️" label="Terms of Service" onPress={() => router.push('/(customer)/terms')} />
+            <ProfileMenuItem icon="🛡️" label="Privacy Policy" onPress={() => router.push('/(customer)/privacy')} />
           </View>
 
           {/* Logout Button */}

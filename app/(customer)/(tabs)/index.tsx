@@ -8,6 +8,7 @@ import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/screen-container';
 import { useAuth } from '@/lib/auth-context';
 import { ScrollView, View, Text, TouchableOpacity } from 'react-native';
+import { menuService } from '@/lib/supabase-service';
 
 interface ServiceCard {
   id: string;
@@ -44,6 +45,7 @@ const services: ServiceCard[] = [
 export default function CustomerHomeScreen() {
   const router = useRouter();
   const { state } = useAuth();
+  const isMock = menuService.isMockMode();
 
   const handleServicePress = (serviceId: string) => {
     switch (serviceId) {
@@ -73,6 +75,17 @@ export default function CustomerHomeScreen() {
     <ScreenContainer className="flex-1 bg-background">
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
         <View className="px-4 py-6">
+          {/* Mock Mode Indicator */}
+          {isMock && (
+            <View className="bg-orange-500/10 border border-orange-500/20 rounded-2xl p-4 mb-6 flex-row items-center gap-3">
+              <Text className="text-xl">⚠️</Text>
+              <View className="flex-1">
+                <Text className="text-orange-600 font-bold text-xs uppercase tracking-widest">Offline Mode</Text>
+                <Text className="text-orange-500 text-xs">Using local catalog. Changes won't sync.</Text>
+              </View>
+            </View>
+          )}
+
           {/* Header */}
           <View className="mb-8">
             <Text className="text-3xl font-bold text-foreground mb-2">

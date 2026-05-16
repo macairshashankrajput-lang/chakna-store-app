@@ -9,6 +9,8 @@ import { ScreenContainer } from '@/components/screen-container';
 import { useState, useEffect } from 'react';
 import { menuService, type MenuItem } from '@/lib/supabase-service';
 import { useCart } from '@/lib/cart-context';
+import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
 
 export default function ChaknaStoreListingScreen() {
   const router = useRouter();
@@ -110,38 +112,68 @@ export default function ChaknaStoreListingScreen() {
           ) : null}
 
           <View className="gap-6 mb-32">
-            {filteredItems.map((item) => (
-              <View key={item.id} className="bg-surface rounded-3xl p-5 border border-border shadow-sm">
-                <View className="flex-row justify-between mb-4">
-                  <View className="flex-1 mr-4">
-                    <View className="flex-row items-center mb-2">
-                      <View className={`w-3 h-3 rounded-full mr-2 ${item.type === 'veg' ? 'bg-green-500' : 'bg-red-500'}`} />
-                      <Text className="text-xs font-bold text-muted uppercase tracking-wider">{item.category}</Text>
+            {loading ? (
+              [1, 2, 3].map((i) => (
+                <View key={i} className="bg-surface rounded-3xl p-5 border border-border shadow-sm">
+                  <View className="flex-row justify-between mb-4">
+                    <View className="flex-1 mr-4">
+                      <Skeleton width={100} height={12} className="mb-2" />
+                      <Skeleton width="80%" height={24} className="mb-2" />
+                      <Skeleton width="100%" height={40} />
                     </View>
-                    <Text className="text-xl font-bold text-foreground mb-1">{item.name}</Text>
-                    <Text className="text-sm text-muted leading-snug" numberOfLines={2}>{item.description}</Text>
+                    <Skeleton width={80} height={50} borderRadius={16} />
                   </View>
-                  <View className="bg-primary/5 p-3 rounded-2xl items-center justify-center min-w-[80px]">
-                    <Text className="text-primary font-bold text-lg">₹{item.price}</Text>
+                  <View className="flex-row gap-3">
+                    <Skeleton height={50} className="flex-[2]" borderRadius={16} />
+                    <Skeleton height={50} className="flex-1" borderRadius={16} />
                   </View>
                 </View>
+              ))
+            ) : filteredItems.length === 0 ? (
+              <EmptyState 
+                emoji="🍕"
+                title="No items found"
+                description="We couldn't find any menu items matching your search or category."
+                buttonLabel="Clear Filters"
+                onButtonPress={() => {
+                  setSearchQuery('');
+                  setSelectedCategory('All');
+                }}
+              />
+            ) : (
+              filteredItems.map((item) => (
+                <View key={item.id} className="bg-surface rounded-3xl p-5 border border-border shadow-sm">
+                  <View className="flex-row justify-between mb-4">
+                    <View className="flex-1 mr-4">
+                      <View className="flex-row items-center mb-2">
+                        <View className={`w-3 h-3 rounded-full mr-2 ${item.type === 'veg' ? 'bg-green-500' : 'bg-red-500'}`} />
+                        <Text className="text-xs font-bold text-muted uppercase tracking-wider">{item.category}</Text>
+                      </View>
+                      <Text className="text-xl font-bold text-foreground mb-1">{item.name}</Text>
+                      <Text className="text-sm text-muted leading-snug" numberOfLines={2}>{item.description}</Text>
+                    </View>
+                    <View className="bg-primary/5 p-3 rounded-2xl items-center justify-center min-w-[80px]">
+                      <Text className="text-primary font-bold text-lg">₹{item.price}</Text>
+                    </View>
+                  </View>
 
-                <View className="flex-row gap-3">
-                  <TouchableOpacity
-                    className="flex-[2] bg-primary rounded-2xl py-4 items-center shadow-md shadow-primary/20"
-                    onPress={() => handleAddToCart(item)}
-                  >
-                    <Text className="text-white font-bold text-base">Add to Cart</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    className="flex-1 bg-surface border border-border rounded-2xl py-4 items-center"
-                    onPress={() => handleViewDetails(item.id)}
-                  >
-                    <Text className="text-foreground font-semibold">Details</Text>
-                  </TouchableOpacity>
+                  <View className="flex-row gap-3">
+                    <TouchableOpacity
+                      className="flex-[2] bg-primary rounded-2xl py-4 items-center shadow-md shadow-primary/20"
+                      onPress={() => handleAddToCart(item)}
+                    >
+                      <Text className="text-white font-bold text-base">Add to Cart</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      className="flex-1 bg-surface border border-border rounded-2xl py-4 items-center"
+                      onPress={() => handleViewDetails(item.id)}
+                    >
+                      <Text className="text-foreground font-semibold">Details</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
-            ))}
+              ))
+            )}
           </View>
         </View>
       </ScrollView>

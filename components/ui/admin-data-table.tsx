@@ -81,7 +81,11 @@ export function AdminDataTable<T>({
                     onChangeText={setSearchQuery}
                 />
                 {filterOptions && (
-                    <ScrollView horizontal className="gap-2">
+                    <ScrollView 
+                        horizontal 
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={{ gap: 8, paddingBottom: 4 }}
+                    >
                         {[{ label: 'All', value: 'all' }, ...filterOptions].map(option => (
                             <TouchableOpacity
                                 key={option.value}

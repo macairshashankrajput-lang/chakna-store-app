@@ -51,13 +51,13 @@ export default function LoginScreen() {
         <View className="px-6">
           {/* Header */}
           <View className="mb-6 items-center">
-            <View className="mb-4 bg-surface p-4 shadow-sm items-center justify-center">
+            <View className="mb-4 items-center justify-center">
               <Image
                 source={appLogo}
-                style={{ width: 120, height: 120, resizeMode: 'contain' }}
+                style={{ width: 140, height: 140, resizeMode: 'contain' }}
               />
             </View>
-            <Text className="text-4xl font-bold text-primary mb-2">Chakna Store</Text>
+            <Text className="text-4xl font-bold text-primary mb-2 text-center">Chakna Store</Text>
             <Text className="text-lg text-foreground mb-1">Welcome Back</Text>
             <Text className="text-base text-muted">Sign in to your account</Text>
           </View>

@@ -1,7 +1,7 @@
 /**
- * Supabase Authentication Helpers
- * Centralized Supabase Auth operations for the app
- */
+* Supabase Authentication Helpers
+* Centralized Supabase Auth operations for the app
+*/
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as customAuth from '@/lib/_core/auth';
@@ -35,11 +35,13 @@ function resolveLoginEmailFromProfile(
     profile: { email?: string | null; username?: string | null; profileEmail?: string | null },
     fallbackUsername?: string
 ): string | null {
-    const profileEmail = profile.email?.toLowerCase();
-    if (profileEmail && profileEmail.endsWith('@chakna.app')) {
-        return profileEmail;
+    // Prioritize explicit email fields if they exist
+    const email = (profile.profileEmail || profile.email)?.toLowerCase();
+    if (email && email.includes('@')) {
+        return email;
     }
 
+    // Fallback to username-based generated email
     const profileUsername = profile.username?.trim().toLowerCase();
     if (profileUsername) {
         return getAuthEmailForUsername(profileUsername);
@@ -126,7 +128,7 @@ async function queryProfileEmailByUsername(username: string): Promise<string | n
         for (const queryField of usernameQueries) {
             const { data, error } = await supabase
                 .from(table)
-                .select('email,username')
+                .select('email,username,profileEmail')
                 .eq(queryField.field, queryField.value)
                 .limit(1)
                 .maybeSingle();
@@ -140,10 +142,9 @@ async function queryProfileEmailByUsername(username: string): Promise<string | n
             }
 
             if (data) {
-                const resolvedEmail = resolveLoginEmailFromProfile(data, username);
-                if (resolvedEmail) {
-                    return resolvedEmail;
-                }
+                // Return the predictable auth email for this username
+                const actualUsername = data.username || username;
+                return getAuthEmailForUsername(actualUsername);
             }
         }
     }
@@ -176,16 +177,13 @@ async function queryProfileEmailByAddress(address: string): Promise<string | nul
         }
 
         if (data) {
-            const resolvedEmail = resolveLoginEmailFromProfile(data);
-            if (resolvedEmail) {
-                return resolvedEmail;
+            // If it's a chakna.app email, return it directly
+            if (lookupEmail.endsWith('@chakna.app')) {
+                return lookupEmail;
             }
-
-            if (data.phone) {
-                const phoneEmail = await queryProfileEmailByPhone(normalizePhone(data.phone));
-                if (phoneEmail) {
-                    return phoneEmail;
-                }
+            // Otherwise return the auth email for this user's username
+            if (data.username) {
+                return getAuthEmailForUsername(data.username);
             }
         }
     }
@@ -243,19 +241,8 @@ async function queryProfileEmailByPhone(normalizedPhone: string): Promise<string
             continue;
         }
 
-        if (data) {
-            const resolvedEmail = resolveLoginEmailFromProfile(data);
-            if (resolvedEmail) {
-                return resolvedEmail;
-            }
-
-            const contactEmail = data.profileEmail?.toLowerCase() || data.email?.toLowerCase();
-            if (contactEmail && !contactEmail.endsWith('@chakna.app')) {
-                const mappedEmail = await queryProfileEmailByAddress(contactEmail);
-                if (mappedEmail) {
-                    return mappedEmail;
-                }
-            }
+        if (data && data.username) {
+            return getAuthEmailForUsername(data.username);
         }
     }
 
@@ -292,11 +279,18 @@ async function lookupReferralCode(referralCode: string): Promise<boolean> {
 async function lookupIdentifierEmail(identifier: string, options: { allowUnknownUsernameFallback?: boolean } = { allowUnknownUsernameFallback: true }): Promise<string> {
     const trimmed = identifier.trim();
     if (!trimmed) {
-        throw new Error('Please enter a valid username or phone number.');
+        throw new Error('Please enter a valid username, email, or phone number.');
     }
 
+    // 1. Direct Email Check
     if (trimmed.includes('@')) {
         const normalizedEmail = trimmed.toLowerCase();
+        // If it's already an auth email, use it directly
+        if (normalizedEmail.endsWith('@chakna.app')) {
+            return normalizedEmail;
+        }
+        
+        // Lookup if this email is linked to an account with a mapped auth email
         const mappedEmail = await queryProfileEmailByAddress(normalizedEmail);
         return mappedEmail || normalizedEmail;
     }
@@ -305,25 +299,25 @@ async function lookupIdentifierEmail(identifier: string, options: { allowUnknown
     const username = trimmed.toLowerCase();
     const isPhoneLookup = !!normalizedPhone && /^[+0-9\s\-()]+$/.test(trimmed) && normalizedPhone.length >= 9;
 
+    // 2. Phone Lookup
     if (isPhoneLookup) {
         const email = await queryProfileEmailByPhone(normalizedPhone);
         if (email) {
             return email;
         }
+        // If phone lookup fails, we don't fallback to username mapping for numbers
         throw new Error('No account found for this phone number. Please verify your number or sign up.');
     }
 
-    const foundEmail = await queryProfileEmailByUsername(username);
-    const authEmail = getAuthEmailForUsername(username);
-    if (foundEmail) {
-        return foundEmail;
+    // 3. Username Lookup/Mapping
+    // First, try to find a real email linked to this username in the profile table
+    const profileEmail = await queryProfileEmailByUsername(username);
+    if (profileEmail) {
+        return profileEmail;
     }
 
-    if (options.allowUnknownUsernameFallback) {
-        return authEmail;
-    }
-
-    throw new Error('No account found for this username. Please verify your username or sign up.');
+    // Fallback to predictable auth email for usernames (essential for legacy/consistent login)
+    return getAuthEmailForUsername(username);
 }
 
 async function queryProfileByAuthId(authId: string): Promise<Partial<User> | null> {
@@ -425,7 +419,7 @@ async function getOrCreateUserProfile(
 
     const userData = supabaseUserToAppUser(supabaseUser, defaultRole, phone, referralCode);
 
-    if (username) {
+    if (username || userData.username) {
         const insertData: Record<string, any> = {
             id: userData.id,
             open_id: userData.id,
@@ -433,22 +427,34 @@ async function getOrCreateUserProfile(
             name: userData.name,
             phone: userData.phone,
             role: userData.role,
+            status: 'active',
             referral_code: userData.referralCode ?? null,
             points_balance: 0,
             delivery_location: deliveryLocation || userData.deliveryLocation || null,
             created_at: userData.createdAt,
+            updated_at: new Date().toISOString(),
+            last_signed_in: new Date().toISOString(),
         };
 
-        if (userData.username) {
-            insertData.username = userData.username;
+        const finalUsername = (username || userData.username).toLowerCase();
+        if (finalUsername) {
+            insertData.username = finalUsername;
         }
 
         const { error: insertError } = await supabase.from('users').insert(insertData);
 
         if (insertError) {
+            // If it's a duplicate ID, it means the user exists but queryProfileByAuthId missed it (rare race condition)
+            if (insertError.code === '23505') {
+                return userData;
+            }
             if (isUserProfileSchemaError(insertError)) {
                 console.warn('[SupabaseAuth] user profile insert skipped due to missing or incompatible users schema:', insertError.message);
-                await insertProfileForCustomer({ ...userData, deliveryLocation });
+                try {
+                    await insertProfileForCustomer({ ...userData, deliveryLocation });
+                } catch (e) {
+                    console.warn('[SupabaseAuth] fallback insert also failed');
+                }
                 return userData;
             }
             throw new Error(insertError.message);
@@ -489,7 +495,9 @@ export async function signUpCustomer(
 
         const normalizedPhone = normalizePhone(phone);
         const normalizedEmail = email?.trim().toLowerCase();
-        const authEmail = normalizedEmail || `${normalizedUsername}@chakna.app`;
+        // Always use username@chakna.app for Supabase Auth to ensure username-based login works.
+        // The real email is stored in user_metadata and the users table.
+        const authEmail = `${normalizedUsername}@chakna.app`;
         const profileEmail = normalizedEmail || authEmail;
 
         if (referralCode) {
@@ -604,6 +612,12 @@ export async function signIn(
         }
 
         const clientUser = await getOrCreateUserProfile(user, 'customer');
+        
+        if (clientUser.role === 'vendor' && (clientUser as any).status === 'inactive') {
+            await signOutUser();
+            throw new Error('Your vendor account is currently inactive. Please contact support.');
+        }
+
         const token = signInData.session?.access_token ?? '';
 
         await AsyncStorage.setItem('userToken', token);

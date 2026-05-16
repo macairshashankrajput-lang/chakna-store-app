@@ -9,6 +9,7 @@ import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/screen-container';
 import { orderService, Order } from '@/lib/supabase-service';
 import { useAuth } from '@/lib/auth-context';
+import { EmptyState } from '@/components/ui/empty-state';
 import { format } from 'date-fns';
 
 export default function OrdersScreen() {
@@ -83,19 +84,13 @@ export default function OrdersScreen() {
       <View className="px-4 py-6 flex-1">
         <Text className="text-3xl font-bold text-foreground mb-6">Your Orders</Text>
         {orders.length === 0 ? (
-          <View className="flex-1 justify-center items-center px-10">
-            <Text className="text-4xl mb-4">🛒</Text>
-            <Text className="text-xl font-bold text-foreground mb-2">No orders yet</Text>
-            <Text className="text-center text-muted mb-8 leading-relaxed">
-              Looks like you haven't placed any orders yet. Start exploring our menu!
-            </Text>
-            <TouchableOpacity 
-              className="bg-primary px-8 py-4 rounded-2xl"
-              onPress={() => router.push('/')}
-            >
-              <Text className="text-white font-bold">Browse Menu</Text>
-            </TouchableOpacity>
-          </View>
+          <EmptyState 
+            emoji="📦"
+            title="No orders yet"
+            description="Looks like you haven't placed any orders yet. Start exploring our delicious menu and place your first order!"
+            buttonLabel="Browse Menu"
+            onButtonPress={() => router.push('/')}
+          />
         ) : (
           <FlatList
             data={orders}

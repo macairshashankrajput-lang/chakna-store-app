@@ -16,6 +16,7 @@ export default function CheckoutScreen() {
     const { state: authState } = useAuth();
     const router = useRouter();
     const [isProcessing, setIsProcessing] = useState(false);
+    const [paymentMethod, setPaymentMethod] = useState<'cod' | 'upi' | 'wallet'>('cod');
 
     const handlePayment = async () => {
         if (!authState.user?.id) {
@@ -26,29 +27,49 @@ export default function CheckoutScreen() {
 
         setIsProcessing(true);
         try {
+            const timestamp = Date.now();
+            const orderId = `${authState.user.id}_${timestamp}`;
             const vendorId = state.items[0].product.vendorId || null;
 
-            // Step 1: Create the order record
+            // Step 1: Create the order record with detailed breakdown
             const { data: newOrder, error: orderError } = await supabase
                 .from('orders')
                 .insert({
+                    id: orderId,
                     user_id: authState.user.id,
                     vendor_id: vendorId,
                     type: 'chakna',
+                    subtotal: Math.round(state.totals.subtotal),
+                    tax: Math.round(state.totals.tax),
+                    delivery_fee: Math.round(state.totals.delivery),
                     total_price: Math.round(state.totals.total),
                     status: 'pending',
-                    payment_status: 'pending',
+                    payment_status: paymentMethod === 'wallet' ? 'paid' : 'pending',
+                    payment_method: paymentMethod,
                 })
                 .select()
                 .single();
 
             if (orderError) throw orderError;
 
-            // Step 2: For each cart item, try to find the real menu ID from DB
-            // If not found (string IDs like CHK001), store with menu_id = null and use notes
+            // Step 2: Create a payment record for tracking
+            const paymentId = `${orderId}_PAY`;
+            const { error: paymentError } = await supabase
+                .from('payments')
+                .insert({
+                    id: paymentId,
+                    order_id: orderId,
+                    user_id: authState.user.id,
+                    amount: Math.round(state.totals.total),
+                    method: paymentMethod,
+                    status: paymentMethod === 'wallet' ? 'success' : 'pending',
+                });
+            
+            if (paymentError) console.error('Payment record creation failed:', paymentError);
+
+            // Step 3: For each cart item, try to find the real menu ID from DB
             const orderItems = await Promise.all(
                 state.items.map(async (item) => {
-                    // Try to find the menu item by name in the DB to get numeric ID
                     const { data: menuRow } = await supabase
                         .from('menu')
                         .select('id')
@@ -56,32 +77,41 @@ export default function CheckoutScreen() {
                         .maybeSingle();
 
                     return {
-                        order_id: newOrder.id,
-                        menu_id: menuRow?.id ?? null,        // null if not found in DB
+                        order_id: orderId,
+                        menu_id: menuRow?.id ?? null,
                         quantity: item.quantity,
                         price: item.product.price,
-                        notes: menuRow ? null : item.product.name, // store name if no DB match
+                        notes: item.product.name, // always store name for reference
                     };
                 })
             );
 
-            // Step 3: Insert order items (allow null menu_id for fallback)
+            // Step 4: Insert order items
             const { error: itemsError } = await supabase
                 .from('order_items')
                 .insert(orderItems);
 
-            if (itemsError) {
-                // If notes column doesn't exist, retry without it
-                const minimalItems = orderItems.map(({ notes, ...rest }) => rest);
-                const { error: retryError } = await supabase.from('order_items').insert(minimalItems);
-                if (retryError) throw retryError;
-            }
+            if (itemsError) throw itemsError;
+
+            // Step 5: Generate a bill (optional but requested)
+            const billId = `${orderId}_BILL`;
+            await supabase
+                .from('bills')
+                .insert({
+                    id: billId,
+                    order_id: orderId,
+                    bill_number: `BILL-${timestamp}`,
+                    details: {
+                        items: state.items.map(i => ({ name: i.product.name, qty: i.quantity, price: i.product.price })),
+                        totals: state.totals
+                    }
+                });
 
             clearCart();
             Alert.alert(
                 '🎉 Order Placed!',
-                `Order #${newOrder.id} placed for ₹${Math.round(state.totals.total)}. We'll start preparing it shortly!`,
-                [{ text: 'Track Order', onPress: () => router.push(`/(customer)/order/${newOrder.id}`) }]
+                `Order Placed for ₹${Math.round(state.totals.total)}. We'll start preparing it shortly!`,
+                [{ text: 'Track Order', onPress: () => router.push(`/(customer)/order/${orderId}`) }]
             );
         } catch (error: any) {
             console.error('Order creation failed:', error);
@@ -138,6 +168,49 @@ export default function CheckoutScreen() {
                         <Text className="text-foreground">
                             {authState.user?.deliveryLocation?.address || 'No address saved — using default delivery location'}
                         </Text>
+                    </View>
+
+                    {/* Payment Breakdown */}
+                    <View className="bg-surface rounded-2xl p-5 mb-5 border border-border">
+                        <Text className="text-sm font-bold text-muted uppercase tracking-wider mb-4">
+                            💳 Payment Method
+                        </Text>
+                        
+                        <TouchableOpacity 
+                            onPress={() => setPaymentMethod('cod')}
+                            className={`flex-row items-center p-4 rounded-xl border mb-3 ${paymentMethod === 'cod' ? 'bg-primary/5 border-primary' : 'bg-background border-border'}`}
+                        >
+                            <Text className="text-2xl mr-3">💵</Text>
+                            <View className="flex-1">
+                                <Text className="font-bold text-foreground">Cash on Delivery</Text>
+                                <Text className="text-xs text-muted">Pay when you receive your order</Text>
+                            </View>
+                            {paymentMethod === 'cod' && <View className="w-4 h-4 rounded-full bg-primary" />}
+                        </TouchableOpacity>
+
+                        <TouchableOpacity 
+                            onPress={() => setPaymentMethod('upi')}
+                            className={`flex-row items-center p-4 rounded-xl border mb-3 ${paymentMethod === 'upi' ? 'bg-primary/5 border-primary' : 'bg-background border-border'}`}
+                        >
+                            <Text className="text-2xl mr-3">📱</Text>
+                            <View className="flex-1">
+                                <Text className="font-bold text-foreground">UPI / Online</Text>
+                                <Text className="text-xs text-muted">Scan QR or pay via UPI app</Text>
+                            </View>
+                            {paymentMethod === 'upi' && <View className="w-4 h-4 rounded-full bg-primary" />}
+                        </TouchableOpacity>
+
+                        <TouchableOpacity 
+                            onPress={() => setPaymentMethod('wallet')}
+                            className={`flex-row items-center p-4 rounded-xl border ${paymentMethod === 'wallet' ? 'bg-primary/5 border-primary' : 'bg-background border-border'}`}
+                        >
+                            <Text className="text-2xl mr-3">🪙</Text>
+                            <View className="flex-1">
+                                <Text className="font-bold text-foreground">Points Wallet</Text>
+                                <Text className="text-xs text-muted">Use your earned loyalty points</Text>
+                            </View>
+                            {paymentMethod === 'wallet' && <View className="w-4 h-4 rounded-full bg-primary" />}
+                        </TouchableOpacity>
                     </View>
 
                     {/* Price Breakdown */}

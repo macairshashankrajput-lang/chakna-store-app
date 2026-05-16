@@ -21,14 +21,28 @@ export default function ChatScreen() {
 
     const initChat = async () => {
       try {
-        const chatData = await chatService.getOrCreateChat(state.user!.id, vendorId);
+        // Determine role to correctly identify customer and vendor IDs
+        let customerId, targetVendorId;
+        if (state.user?.role === 'vendor') {
+          customerId = vendorId; // In vendor panel, the param 'vendorId' is actually the customer's ID
+          targetVendorId = state.user.id;
+        } else {
+          customerId = state.user?.id;
+          targetVendorId = vendorId;
+        }
+
+        const chatData = await chatService.getOrCreateChat(customerId, targetVendorId);
         setChat(chatData);
         const msgs = await chatService.getMessages(chatData.id);
         setMessages(msgs || []);
         
         // Subscribe to real-time updates
         const unsubscribe = chatService.subscribeToMessages(chatData.id, (msg) => {
-          setMessages(prev => [...prev, msg]);
+          // Prevent duplicate messages if the insert trigger also sends a real-time event
+          setMessages(prev => {
+            if (prev.some(m => m.id === msg.id)) return prev;
+            return [...prev, msg];
+          });
         });
 
         return unsubscribe;
@@ -45,7 +59,7 @@ export default function ChatScreen() {
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, [vendorId, state.user?.id]);
+  }, [vendorId, state.user?.id, state.user?.role]);
 
   const handleSend = async () => {
     if (!newMessage.trim() || !chat || !state.user?.id) return;
@@ -88,7 +102,9 @@ export default function ChatScreen() {
             <IconSymbol name="chevron.left" size={24} color="#E25C3D" />
           </TouchableOpacity>
           <View>
-            <Text className="text-lg font-bold text-foreground">Chat with Vendor</Text>
+            <Text className="text-lg font-bold text-foreground">
+              {state.user?.role === 'vendor' ? (chat?.customer?.name || 'Customer') : (chat?.vendor?.business_name || chat?.vendor?.name || 'Vendor')}
+            </Text>
             <Text className="text-xs text-muted">Real-time Messaging</Text>
           </View>
         </View>

@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as customAuth from '@/lib/_core/auth';
 import { DEFAULT_ADMIN_CREDENTIALS } from './default-credentials';
 import * as supabaseAuth from './supabase-auth';
+import { notificationManager } from './notification-manager';
 
 export type UserRole = 'customer' | 'vendor' | 'admin';
 
@@ -170,6 +171,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         AsyncStorage.setItem('user', JSON.stringify(result.user)),
       ]);
       dispatch({ type: 'SIGN_IN_SUCCESS', payload: { token: result.token, user: result.user } });
+      
+      // Register for push notifications in the background
+      setTimeout(() => {
+        notificationManager.registerForPushNotifications(result.user.id).catch(console.error);
+      }, 1000);
+
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Sign in failed';

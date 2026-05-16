@@ -29,7 +29,7 @@ function AdminShell() {
   const { width } = useWindowDimensions();
   const { kpis, pendingReviewsCount } = useAdminContext();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const isWide = width >= 900;
+  const isWide = width >= 768;
 
   const handleNavigate = (route: string) => {
     setDrawerOpen(false);
@@ -109,13 +109,15 @@ function AdminShell() {
 
         <View className="flex-1 bg-background">
           <Slot />
+          
+          {/* Mobile Drawer Overlay */}
           {!isWide && drawerOpen && (
-            <View className="absolute inset-0 z-20 flex-row bg-black/20">
+            <View className="absolute inset-0 z-20 flex-row">
               <Pressable
-                className="flex-1"
+                className="flex-1 bg-black/40"
                 onPress={() => setDrawerOpen(false)}
               />
-              <View className="w-72 border-l border-border bg-surface">
+              <View className="w-64 border-l border-border bg-surface shadow-xl">
                 {navigationPanel}
               </View>
             </View>

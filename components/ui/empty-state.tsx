@@ -1,38 +1,31 @@
-/**
- * Empty State Component
- * With illustrations and call-to-action
- */
-
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import { IconSymbol } from './icon-symbol';
 
 interface EmptyStateProps {
+    emoji: string;
     title: string;
     description: string;
-    action?: { label: string; onPress: () => void; icon?: string };
-    illustration?: string; // Emoji or SVG
+    buttonLabel?: string;
+    onButtonPress?: () => void;
 }
 
-export function EmptyState({
-    title,
-    description,
-    action,
-    illustration = '🔍'
-}: EmptyStateProps) {
+export function EmptyState({ emoji, title, description, buttonLabel, onButtonPress }: EmptyStateProps) {
     return (
-        <View className="flex-1 items-center justify-center p-8 bg-background">
-            <View className="w-24 h-24 bg-muted/20 rounded-2xl items-center justify-center mb-6">
-                <Text className="text-4xl">{illustration}</Text>
-            </View>
-            <Text className="text-2xl font-bold text-foreground mb-2 text-center">{title}</Text>
-            <Text className="text-muted text-center mb-6 px-4">{description}</Text>
-            {action && (
-                <TouchableOpacity className="bg-primary rounded-lg px-8 py-4" onPress={action.onPress}>
-                    <Text className="text-white font-bold text-base">{action.label}</Text>
+        <View className="flex-1 items-center justify-center py-12 px-8">
+            <Text className="text-6xl mb-4">{emoji}</Text>
+            <Text className="text-xl font-bold text-foreground text-center mb-2">{title}</Text>
+            <Text className="text-base text-muted text-center mb-8 leading-relaxed">
+                {description}
+            </Text>
+            
+            {buttonLabel && onButtonPress && (
+                <TouchableOpacity 
+                    onPress={onButtonPress}
+                    className="bg-primary px-8 py-4 rounded-2xl shadow-md"
+                >
+                    <Text className="text-background font-bold text-base">{buttonLabel}</Text>
                 </TouchableOpacity>
             )}
         </View>
     );
 }
-

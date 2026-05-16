@@ -48,7 +48,7 @@ export default function AdminAnalyticsScreen() {
             <Text className="text-lg font-bold text-foreground mb-4">Order Statistics</Text>
             <View className="gap-4">
               <MetricRow label="Total Completed Orders" value={kpis.totalOrders} total={kpis.totalOrders + 5} color="bg-success" />
-              <MetricRow label="Average Order Value" value={`₹${Math.round(kpis.revenue / (kpis.totalOrders || 1))}`} total={1000} color="bg-blue-500" />
+              <MetricRow label="Average Order Value" value={`₹${kpis.avgOrderValue}`} total={1000} color="bg-blue-500" />
               <MetricRow label="Customer Retention" value="84%" total={100} color="bg-orange-500" />
             </View>
           </View>

@@ -35,6 +35,45 @@ export default function VendorMenuScreen() {
         }
     };
 
+    const [isAddModalVisible, setIsAddModalVisible] = useState(false);
+    const [newItem, setNewItem] = useState({
+        name: '',
+        price: '',
+        category: 'Tiffins',
+        description: '',
+        type: 'veg' as 'veg' | 'non-veg'
+    });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleAddItem = async () => {
+        if (!newItem.name || !newItem.price) {
+            Alert.alert('Error', 'Please fill in all required fields');
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            await menuService.addMenuItem({
+                name: newItem.name,
+                price: parseInt(newItem.price),
+                category: newItem.category,
+                description: newItem.description,
+                type: newItem.type,
+                image: null,
+                ingredients: '',
+                vendorId: vendorId
+            });
+            Alert.alert('Success', 'Item added to menu');
+            setIsAddModalVisible(false);
+            setNewItem({ name: '', price: '', category: 'Tiffins', description: '', type: 'veg' });
+            fetchMenu();
+        } catch (error) {
+            Alert.alert('Error', 'Failed to add item');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     if (isLoading) {
         return (
             <ScreenContainer className="flex-1 items-center justify-center bg-background">
@@ -54,7 +93,7 @@ export default function VendorMenuScreen() {
                         </View>
                         <TouchableOpacity 
                             className="bg-primary px-4 py-2 rounded-lg"
-                            onPress={() => Alert.alert('Add Item', 'Add item functionality coming soon')}
+                            onPress={() => setIsAddModalVisible(true)}
                         >
                             <Text className="text-white font-bold">+ Add Item</Text>
                         </TouchableOpacity>
@@ -85,8 +124,8 @@ export default function VendorMenuScreen() {
                                             <Text className="text-sm text-primary font-bold">₹{item.price}</Text>
                                         </View>
                                         <Switch
-                                            value={item.available}
-                                            onValueChange={() => handleToggleAvailability(item.id, item.available)}
+                                            value={item.isActive ?? item.is_active}
+                                            onValueChange={() => handleToggleAvailability(item.id, item.isActive ?? item.is_active)}
                                             trackColor={{ false: '#767577', true: '#E25C3D' }}
                                         />
                                     </View>
@@ -97,6 +136,99 @@ export default function VendorMenuScreen() {
                     )}
                 </View>
             </ScrollView>
+
+            {/* Add Item Modal */}
+            {isAddModalVisible && (
+                <View className="absolute inset-0 bg-black/50 justify-end">
+                    <View className="bg-surface rounded-t-3xl p-6 pb-10">
+                        <Text className="text-2xl font-bold text-foreground mb-6">Add New Item</Text>
+                        
+                        <View className="mb-4">
+                            <Text className="text-sm font-semibold text-muted mb-2 uppercase">Item Name</Text>
+                            <TextInput 
+                                className="bg-background border border-border rounded-xl px-4 py-3 text-foreground"
+                                placeholder="Enter item name"
+                                value={newItem.name}
+                                onChangeText={text => setNewItem(n => ({ ...n, name: text }))}
+                            />
+                        </View>
+
+                        <View className="flex-row gap-4 mb-4">
+                            <View className="flex-1">
+                                <Text className="text-sm font-semibold text-muted mb-2 uppercase">Price (₹)</Text>
+                                <TextInput 
+                                    className="bg-background border border-border rounded-xl px-4 py-3 text-foreground"
+                                    placeholder="239"
+                                    keyboardType="numeric"
+                                    value={newItem.price}
+                                    onChangeText={text => setNewItem(n => ({ ...n, price: text }))}
+                                />
+                            </View>
+                            <View className="flex-1">
+                                <Text className="text-sm font-semibold text-muted mb-2 uppercase">Type</Text>
+                                <View className="flex-row bg-background border border-border rounded-xl overflow-hidden">
+                                    <TouchableOpacity 
+                                        className={`flex-1 py-3 items-center ${newItem.type === 'veg' ? 'bg-primary' : ''}`}
+                                        onPress={() => setNewItem(n => ({ ...n, type: 'veg' }))}
+                                    >
+                                        <Text className={newItem.type === 'veg' ? 'text-white font-bold' : 'text-foreground'}>Veg</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity 
+                                        className={`flex-1 py-3 items-center ${newItem.type === 'non-veg' ? 'bg-primary' : ''}`}
+                                        onPress={() => setNewItem(n => ({ ...n, type: 'non-veg' }))}
+                                    >
+                                        <Text className={newItem.type === 'non-veg' ? 'text-white font-bold' : 'text-foreground'}>Non-Veg</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </View>
+
+                        <View className="mb-4">
+                            <Text className="text-sm font-semibold text-muted mb-2 uppercase">Category</Text>
+                            <View className="flex-row flex-wrap gap-2">
+                                {['Tiffins', 'Chakna', 'Beverages', 'Desserts'].map(cat => (
+                                    <TouchableOpacity 
+                                        key={cat}
+                                        onPress={() => setNewItem(n => ({ ...n, category: cat }))}
+                                        className={`px-4 py-2 rounded-full border ${newItem.category === cat ? 'bg-primary/10 border-primary' : 'border-border'}`}
+                                    >
+                                        <Text className={newItem.category === cat ? 'text-primary font-bold' : 'text-muted'}>{cat}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
+
+                        <View className="mb-6">
+                            <Text className="text-sm font-semibold text-muted mb-2 uppercase">Description</Text>
+                            <TextInput 
+                                className="bg-background border border-border rounded-xl px-4 py-3 text-foreground"
+                                placeholder="Describe the item..."
+                                multiline
+                                numberOfLines={3}
+                                value={newItem.description}
+                                onChangeText={text => setNewItem(n => ({ ...n, description: text }))}
+                                style={{ textAlignVertical: 'top' }}
+                            />
+                        </View>
+
+                        <View className="flex-row gap-4">
+                            <TouchableOpacity 
+                                className="flex-1 bg-muted/20 py-4 rounded-xl items-center"
+                                onPress={() => setIsAddModalVisible(false)}
+                            >
+                                <Text className="text-foreground font-bold">Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                                className="flex-[2] bg-primary py-4 rounded-xl items-center shadow-lg shadow-primary/20"
+                                onPress={handleAddItem}
+                                disabled={isSubmitting}
+                            >
+                                {isSubmitting ? <ActivityIndicator color="white" /> : <Text className="text-white font-bold">Add Item</Text>}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            )}
         </ScreenContainer>
     );
 }

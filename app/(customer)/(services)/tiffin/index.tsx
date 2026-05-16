@@ -103,8 +103,8 @@ export default function TiffinScreen() {
       setIsPlanning(false);
       loadTiffinData(); // Reload to get schedule
       Alert.alert('Subscribed!', 'Your tiffin subscription is active. Your meal calendar is now ready.');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to create subscription');
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to create subscription');
     } finally {
       setIsSubscribing(false);
     }

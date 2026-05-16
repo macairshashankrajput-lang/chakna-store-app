@@ -97,8 +97,8 @@ export default function OrderDetailScreen() {
                     </View>
 
                     <View className="bg-surface rounded-3xl border border-border p-5 mb-6">
-                        <Text className="text-2xl font-bold text-foreground mb-2">Order #ORD-{order.id}</Text>
-                        <Text className="text-sm text-muted mb-4">Placed on {format(new Date(order.createdAt), 'MMMM do, yyyy h:mm a')}</Text>
+                        <Text className="text-2xl font-bold text-foreground mb-2">Order #{String(order.id).slice(-8).toUpperCase()}</Text>
+                        <Text className="text-sm text-muted mb-4">Placed on {format(new Date(order.createdAt ?? order.created_at), 'MMMM do, yyyy h:mm a')}</Text>
                         <View className="bg-primary/10 rounded-3xl p-4 mb-4">
                             <Text className={`font-bold mb-1 ${statusColors[order.status] || 'text-muted'}`}>{order.status.replace(/_/g, ' ').toUpperCase()}</Text>
                             <Text className="text-sm text-muted">Your order is currently {order.status.replace(/_/g, ' ').toLowerCase()}.</Text>
@@ -129,17 +129,26 @@ export default function OrderDetailScreen() {
                     </View>
 
                     <View className="bg-surface rounded-3xl border border-border p-5 mb-6">
-                        <Text className="text-base font-semibold text-foreground mb-3">Payment</Text>
+                        <Text className="text-base font-semibold text-foreground mb-3">Payment Breakdown</Text>
                         <View className="flex-row justify-between mb-2">
-                            <Text className="text-muted">Item Total</Text>
-                            <Text>₹{order.totalPrice}</Text>
+                            <Text className="text-muted">Subtotal</Text>
+                            <Text>₹{(order.subtotal ?? order.totalPrice ?? 0)}</Text>
+                        </View>
+                        <View className="flex-row justify-between mb-2">
+                            <Text className="text-muted">Tax</Text>
+                            <Text>₹{(order.tax ?? 0)}</Text>
+                        </View>
+                        <View className="flex-row justify-between mb-2">
+                            <Text className="text-muted">Delivery Fee</Text>
+                            <Text>₹{(order.deliveryFee ?? order.delivery_fee ?? 0)}</Text>
                         </View>
                         <View className="flex-row justify-between pt-3 border-t border-border mt-3">
-                            <Text className="font-semibold text-foreground">Total paid</Text>
-                            <Text className="font-semibold text-primary text-xl">₹{order.totalPrice}</Text>
+                            <Text className="font-semibold text-foreground">Total Paid</Text>
+                            <Text className="font-semibold text-primary text-xl">₹{order.totalPrice ?? order.total_price}</Text>
                         </View>
-                        <View className="mt-4">
-                            <Text className="text-muted text-sm">Payment Status: <Text className="font-bold text-foreground capitalize">{order.paymentStatus}</Text></Text>
+                        <View className="mt-4 gap-1">
+                            <Text className="text-muted text-sm">Payment Status: <Text className="font-bold text-foreground capitalize">{order.paymentStatus ?? order.payment_status}</Text></Text>
+                            <Text className="text-muted text-sm">Payment Method: <Text className="font-bold text-foreground capitalize">{(order.paymentMethod ?? order.payment_method ?? 'cod').replace('_', ' ')}</Text></Text>
                         </View>
                     </View>
 

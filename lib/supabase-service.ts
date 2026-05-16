@@ -54,14 +54,19 @@ export interface UserProfile {
   createdAt: string;
 }
 
+
 export interface Order {
-  id: number;
+  id: string;               // format: userId_timestamp
   userId: string;
   vendorId: string | null;
   type: 'chakna' | 'tiffin' | 'catering';
+  subtotal: number;
+  tax: number;
+  deliveryFee: number;
   totalPrice: number;
   status: 'pending' | 'cooking' | 'out_for_delivery' | 'delivered' | 'cancelled';
   paymentStatus: string;
+  paymentMethod: string | null;
   receiptImage: string | null;
   createdAt: string;
 }
@@ -103,17 +108,23 @@ export interface TiffinSchedule {
 // MENU OPERATIONS
 // ============================================================================
 
+let _isMockMode = false;
+
 export const menuService = {
+  isMockMode: () => _isMockMode,
+
   getAllMenuItems: async (): Promise<MenuItem[]> => {
     try {
       const { data, error } = await supabase.from('menu').select('*').eq('is_active', true);
       if (error) throw error;
+      _isMockMode = false;
       return (data as any[]).map(item => ({
         ...item,
         id: item.id.toString(),
       })) as MenuItem[];
     } catch (error: any) {
       console.warn('[SupabaseService] menu fetch failed, using catalog:', error.message);
+      _isMockMode = true;
       // Fallback to local catalog if table doesn't exist yet or is empty
       const { menuItems } = require('./menu-data');
       return menuItems.map((item: any) => ({
@@ -166,13 +177,15 @@ export const menuService = {
     }
   },
 
-  addMenuItem: async (item: Omit<MenuItem, 'id' | 'createdAt' | 'isActive'>) => {
+  addMenuItem: async (item: any) => {
     const { data, error } = await supabase.from('menu').insert({
+      vendor_id: item.vendorId,
       name: item.name,
       price: item.price,
       category: item.category,
       description: item.description,
       image: item.image,
+      ingredients: item.ingredients,
       is_active: true,
     }).select().single();
     handleError(error);
@@ -215,6 +228,19 @@ export const menuService = {
 // ============================================================================
 
 export const userService = {
+  updateUserProfile: async (userId: string, updates: Partial<UserProfile>): Promise<void> => {
+    const { error } = await supabase
+      .from('users')
+      .update({
+        name: updates.name,
+        phone: updates.phone,
+        delivery_location: updates.deliveryLocation,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', userId);
+    handleError(error);
+  },
+
   getProfile: async (userId: string): Promise<UserProfile | null> => {
     const { data, error } = await supabase.from('users').select('*').eq('id', userId).single();
     handleError(error);
@@ -403,21 +429,49 @@ export const tiffinService = {
 // ============================================================================
 
 export const orderService = {
-  createOrder: async (order: Omit<Order, 'id' | 'createdAt' | 'status' | 'paymentStatus'>, items: { menuId: number; quantity: number; price: number }[]) => {
+  /**
+   * Creates an order with a unique userId_timestamp ID.
+   * Also creates a payment record and a bill record automatically.
+   */
+  createOrder: async (
+    order: Omit<Order, 'id' | 'createdAt' | 'status' | 'paymentStatus'>,
+    items: { menuId: number; quantity: number; price: number; notes?: string }[]
+  ) => {
+    const timestamp = Date.now();
+    const orderId = `${order.userId}_${timestamp}`;
+
     const { data: newOrder, error: orderError } = await supabase.from('orders').insert({
-      ...order,
+      id: orderId,
+      user_id: order.userId,
+      vendor_id: order.vendorId,
+      type: order.type,
+      subtotal: order.subtotal ?? order.totalPrice,
+      tax: order.tax ?? 0,
+      delivery_fee: order.deliveryFee ?? 0,
       total_price: order.totalPrice,
+      payment_method: order.paymentMethod,
       status: 'pending',
-      payment_status: 'pending'
+      payment_status: 'pending',
     }).select().single();
 
     handleError(orderError);
 
+    // Create payment record
+    await supabase.from('payments').insert({
+      id: `${orderId}_PAY`,
+      order_id: orderId,
+      user_id: order.userId,
+      amount: order.totalPrice,
+      method: order.paymentMethod ?? 'cod',
+      status: 'pending',
+    });
+
     const orderItems = items.map(item => ({
-      order_id: newOrder.id,
+      order_id: orderId,
       menu_id: item.menuId,
       quantity: item.quantity,
-      price: item.price
+      price: item.price,
+      notes: item.notes ?? null,
     }));
 
     const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
@@ -427,29 +481,48 @@ export const orderService = {
   },
 
   getUserOrders: async (userId: string): Promise<Order[]> => {
-    const { data, error } = await supabase.from('orders').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
     handleError(error);
-    return data as Order[];
+    // Normalise snake_case from DB to camelCase
+    return (data || []).map((o: any) => ({
+      ...o,
+      totalPrice: o.total_price,
+      deliveryFee: o.delivery_fee,
+      paymentStatus: o.payment_status,
+      paymentMethod: o.payment_method,
+      createdAt: o.created_at,
+    })) as Order[];
   },
 
   getAllOrders: async (): Promise<Order[]> => {
-    const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false });
     handleError(error);
-    return data as Order[];
+    return (data || []).map((o: any) => ({
+      ...o,
+      totalPrice: o.total_price,
+      deliveryFee: o.delivery_fee,
+      paymentStatus: o.payment_status,
+      paymentMethod: o.payment_method,
+      createdAt: o.created_at,
+    })) as Order[];
   },
 
-  updateOrderStatus: async (orderId: string | number, status: string) => {
+  updateOrderStatus: async (orderId: string, status: string) => {
     const { error } = await supabase.from('orders').update({ status }).eq('id', orderId);
     handleError(error);
   },
 
-  getOrderDetails: async (orderId: string | number) => {
+  getOrderDetails: async (orderId: string) => {
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select(`
-        *,
-        users!user_id (name, email, phone, delivery_location)
-      `)
+      .select(`*, users!user_id (name, email, phone, delivery_location)`)
       .eq('id', orderId)
       .single();
 
@@ -457,22 +530,35 @@ export const orderService = {
 
     const { data: items, error: itemsError } = await supabase
       .from('order_items')
-      .select(`
-        *,
-        menu!menu_id (name, price, image)
-      `)
+      .select(`*, menu!menu_id (name, price, image)`)
       .eq('order_id', orderId);
 
     handleError(itemsError);
 
+    // Also fetch payment record
+    const { data: payment } = await supabase
+      .from('payments')
+      .select('*')
+      .eq('order_id', orderId)
+      .maybeSingle();
+
     return {
       ...order,
-      items: (items || []).map(item => ({
+      totalPrice: order.total_price,
+      subtotal: order.subtotal ?? order.total_price,
+      tax: order.tax ?? 0,
+      deliveryFee: order.delivery_fee ?? 0,
+      paymentStatus: order.payment_status,
+      paymentMethod: order.payment_method,
+      createdAt: order.created_at,
+      payment: payment ?? null,
+      items: (items || []).map((item: any) => ({
         ...item,
-        name: item.menu?.name,
-        menuPrice: item.menu?.price,
-        image: item.menu?.image
-      }))
+        // Use menu name first, fallback to notes (item name stored at checkout)
+        name: item.menu?.name ?? item.notes ?? 'Menu Item',
+        menuPrice: item.menu?.price ?? item.price,
+        image: item.menu?.image ?? null,
+      })),
     };
   },
 
@@ -491,7 +577,7 @@ export const orderService = {
 export interface Review {
   id: number;
   userId: string;
-  orderId: number | null;
+  orderId: string | null;  // now a varchar (userId_timestamp)
   rating: number;
   comment: string | null;
   createdAt: string;
@@ -578,31 +664,58 @@ export const vendorService = {
   },
 
   createVendor: async (vendor: any) => {
-    // For admin operations, we use a service role client if key is available
     const serviceKey = supabaseConfig.serviceRoleKey;
-    const client = serviceKey ? createClient(supabaseConfig.url, serviceKey) : supabase;
+    const authEmail = `${vendor.username.toLowerCase()}@chakna.app`;
     
-    // Create auth user
-    const { data: authData, error: authError } = await (client.auth.admin ? client.auth.admin.createUser({
-      email: vendor.email || `${vendor.username}@chakna.app`,
-      password: vendor.password,
-      email_confirm: true,
-      user_metadata: {
-        role: 'vendor',
-        name: vendor.name,
-        username: vendor.username,
-        businessName: vendor.businessName
-      }
-    }) : Promise.reject(new Error('Admin client not available')));
+    // For admin operations, we use a service role client if key is available.
+    // If not (e.g. on client), we fallback to a non-persisting signUp.
+    const client = serviceKey 
+      ? createClient(supabaseConfig.url, serviceKey, { auth: { persistSession: false } })
+      : createClient(supabaseConfig.url, supabaseConfig.anonKey, { auth: { persistSession: false } });
+    
+    let userId: string;
 
-    if (authError) throw authError;
+    if (serviceKey && client.auth.admin) {
+      const { data: authData, error: authError } = await client.auth.admin.createUser({
+        email: authEmail,
+        password: vendor.password,
+        email_confirm: true,
+        user_metadata: {
+          role: 'vendor',
+          name: vendor.name,
+          username: vendor.username,
+          businessName: vendor.businessName,
+          profileEmail: vendor.email
+        }
+      });
+      if (authError) throw authError;
+      userId = authData.user.id;
+    } else {
+      // Fallback for client-side creation (might require RLS to be disabled or specific policies)
+      const { data: authData, error: authError } = await client.auth.signUp({
+        email: authEmail,
+        password: vendor.password,
+        options: {
+          data: {
+            role: 'vendor',
+            name: vendor.name,
+            username: vendor.username,
+            businessName: vendor.businessName,
+            profileEmail: vendor.email
+          }
+        }
+      });
+      if (authError) throw authError;
+      if (!authData.user) throw new Error('Failed to create vendor account');
+      userId = authData.user.id;
+    }
 
-    // Create profile
+    // Create profile in the users table
     const { error: profileError } = await supabase.from('users').insert({
-      id: authData.user.id,
+      id: userId,
       username: vendor.username,
       name: vendor.name,
-      email: vendor.email || `${vendor.username}@chakna.app`,
+      email: vendor.email || authEmail,
       phone: vendor.phone,
       role: 'vendor',
       status: vendor.status || 'active',
@@ -611,12 +724,13 @@ export const vendorService = {
     });
 
     if (profileError) {
-      // Cleanup auth user if profile creation fails
-      await client.auth.admin.deleteUser(authData.user.id);
+      if (serviceKey && client.auth.admin) {
+        await client.auth.admin.deleteUser(userId);
+      }
       throw profileError;
     }
 
-    return authData.user;
+    return { id: userId };
   },
 
   updateVendor: async (vendorId: string, updates: Partial<VendorUser>) => {
@@ -639,7 +753,7 @@ export const chatService = {
   getChats: async (userId: string) => {
     const { data, error } = await supabase
       .from('chats')
-      .select('*, customer:customer_id(name), vendor:vendor_id(name, business_name)')
+      .select('*, customer:customer_id(id, name), vendor:vendor_id(id, name, business_name)')
       .or(`customer_id.eq.${userId},vendor_id.eq.${userId}`)
       .order('updated_at', { ascending: false });
     handleError(error);
@@ -676,7 +790,7 @@ export const chatService = {
   getOrCreateChat: async (customerId: string, vendorId: string) => {
     const { data, error } = await supabase
       .from('chats')
-      .select('*')
+      .select('*, customer:customer_id(id, name), vendor:vendor_id(id, name, business_name)')
       .eq('customer_id', customerId)
       .eq('vendor_id', vendorId)
       .maybeSingle();
@@ -701,6 +815,47 @@ export const chatService = {
         schema: 'public', 
         table: 'chat_messages',
         filter: `chat_id=eq.${chatId}` 
+      }, (payload) => {
+        callback(payload.new);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }
+};
+
+// ============================================================================
+// NOTIFICATION OPERATIONS
+// ============================================================================
+
+export const notificationService = {
+  getUserNotifications: async (userId: string) => {
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    handleError(error);
+    return data || [];
+  },
+
+  markAsRead: async (id: number) => {
+    const { error } = await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+    handleError(error);
+  },
+
+  markAllAsRead: async (userId: string) => {
+    const { error } = await supabase.from('notifications').update({ is_read: true }).eq('user_id', userId).eq('is_read', false);
+    handleError(error);
+  },
+
+  subscribeToNotifications: (userId: string, callback: (notification: any) => void) => {
+    const channel = supabase
+      .channel(`user-notifications-${userId}`)
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'notifications',
+        filter: `user_id=eq.${userId}` 
       }, (payload) => {
         callback(payload.new);
       })

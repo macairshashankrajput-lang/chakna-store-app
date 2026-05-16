@@ -9,6 +9,7 @@ import { orderService, reviewService, userService } from './supabase-service';
 interface KPIStats {
     totalOrders: number;
     revenue: number;
+    avgOrderValue: number;
     activeUsers: number;
     totalVendors: number;
     isLoading: boolean;
@@ -40,6 +41,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     const [kpis, setKpis] = useState<KPIStats>({
         totalOrders: 0,
         revenue: 0,
+        avgOrderValue: 0,
         activeUsers: 0,
         totalVendors: 0,
         isLoading: true,
@@ -79,10 +81,9 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
                 const orders = ordersResult.status === 'fulfilled' ? ordersResult.value : [];
                 const totalOrders = orders.length;
-                const revenue = orders.reduce(
-                    (sum, order) => sum + ((order as any).totalPrice ?? (order as any).total_price ?? 0),
-                    0,
-                );
+                // totalPrice is reliably set by getAllOrders() camelCase mapper
+                const revenue = orders.reduce((sum, order) => sum + (order.totalPrice ?? 0), 0);
+                const avgOrderValue = totalOrders > 0 ? Math.round(revenue / totalOrders) : 0;
                 const activeUsers = customerCountResult.status === 'fulfilled' ? customerCountResult.value : 0;
                 const totalVendors = vendorCountResult.status === 'fulfilled' ? vendorCountResult.value : 0;
                 const pendingReviewsCount = reviewsResult.status === 'fulfilled'
@@ -93,6 +94,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
                 setKpis({
                     totalOrders,
                     revenue,
+                    avgOrderValue,
                     activeUsers,
                     totalVendors,
                     isLoading: false,
